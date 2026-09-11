@@ -338,6 +338,7 @@
     .mission-briefing-head span { position:absolute; right:0; top:8px; white-space:nowrap; opacity:0; }
     .mission-briefing h2 { margin:clamp(23px,4vh,44px) 0 12px; color:#f5f3ed; font-size:clamp(28px,4.5vw,64px); line-height:1.2; letter-spacing:-.035em; opacity:0; transform:translateY(20px); }
     .mission-briefing-summary { max-width:980px; margin:0; color:#9a9e98; font-size:clamp(11px,1.15vw,15px); line-height:1.9; opacity:0; transform:translateY(16px); }
+    .mission-briefing.office-auth-success .mission-briefing-summary { max-width:1050px; margin-top:clamp(14px,2.5vh,24px); padding:clamp(18px,2.5vw,24px); border:1px solid rgba(237,58,49,.7); border-left:6px solid var(--red-bright); background:rgba(189,41,41,.2); color:#fff; font-size:clamp(15px,1.6vw,21px); font-weight:700; line-height:1.7; letter-spacing:.035em; box-shadow:0 0 38px rgba(189,41,41,.14),inset 0 0 28px rgba(237,58,49,.05); text-shadow:0 0 12px rgba(255,255,255,.12); }
     .mission-rule-title { margin:clamp(24px,4vh,42px) 0 9px; color:var(--red-bright); font:10px Consolas,monospace; letter-spacing:.2em; opacity:0; transform:translateY(13px); }
     .mission-rules { max-width:1050px; margin:0; padding:0; list-style:none; border-top:1px solid rgba(232,231,225,.14); }
     .mission-rules li { display:grid; grid-template-columns:18px 1fr; gap:14px; padding:11px 0; border-bottom:1px solid rgba(232,231,225,.1); color:#d0d2cc; font-size:clamp(11px,1vw,14px); line-height:1.7; opacity:0; transform:translateY(12px); }
@@ -1209,7 +1210,7 @@
                       </div>
                     </div>
                     <p class="cctv-caption">VIDEO SOURCE / CHINEN SEIYA　・　VIDEO SLOT / STANDBY</p>
-                    <p class="next-room-directive">裏切り者の特定が完了したら次の部屋に進んでください。</p>
+                    <p class="next-room-directive">裏切り者の特定が完了したら、奥の【消失装置】がある場所に向かってください。</p>
                     <form id="culprit-form" hidden><input id="culprit-name" name="culprit-name"><div id="culprit-feedback"></div></form>
                   </div>
                 </div>
@@ -1332,7 +1333,7 @@
       <div class="mission-briefing-head"><b id="mission-briefing-label">FIRST MISSION</b><span>OPERATION BRIEFING</span></div>
       <h2 id="mission-briefing-title"></h2>
       <p class="mission-briefing-summary" id="mission-briefing-summary"></p>
-      <p class="mission-rule-title">MISSION RULES</p>
+      <p class="mission-rule-title" id="mission-rule-title">MISSION RULES</p>
       <ul class="mission-rules" id="mission-rules"></ul>
       <button class="mission-confirm" id="mission-confirm" type="button"><span id="mission-confirm-label">確認して開始する</span><span aria-hidden="true">→</span></button>
     </section>
@@ -1448,6 +1449,7 @@
       const missionBriefingLabel = document.getElementById('mission-briefing-label');
       const missionBriefingTitle = document.getElementById('mission-briefing-title');
       const missionBriefingSummary = document.getElementById('mission-briefing-summary');
+      const missionRuleTitle = document.getElementById('mission-rule-title');
       const missionRules = document.getElementById('mission-rules');
       const missionConfirm = document.getElementById('mission-confirm');
       const missionConfirmLabel = document.getElementById('mission-confirm-label');
@@ -1457,11 +1459,17 @@
         'まずは絵画展示エリアへ向かい、絵画の問題を調べてくれ。',
         '絵画A〜Dをよく調べてみてくれ。困った時は各問題のヒントを使える。'
       ];
-      const officeDialogueLines = [
-        '認証を完了して、容疑者の取り調べ資料を無事受け取れたようだな。',
-        'お前が頑張っている間に、こちらで9月11日当日の監視カメラ映像を入手しておいた。',
-        'それでは、取り調べ資料と映像を照らし合わせて、裏切り者を特定してくれ。頼んだぞ。'
-      ];
+      function getOfficeDialogueLines() {
+        return [
+          '認証を完了して、容疑者の取り調べ資料を無事受け取れたようだな。',
+          'お前が頑張っている間に、こちらで9月11日当日の監視カメラ映像を入手しておいた。',
+          ...(selectedDifficulty === 'easy' ? [
+            '・・・ん？　映像の左側にあるのは、絵画Dか？　いや、待て、これは・・・。',
+            '・・・いや、何でもない。少し見覚えがあって焦っただけだ。気にせず捜査を続けてくれ。'
+          ] : []),
+          'それでは、取り調べ資料と映像を照らし合わせて、裏切り者を特定してくれ。頼んだぞ。'
+        ];
+      }
       const targetDialogueLines = [
         '裏切り者が特定できたようだな。',
         'では、消失装置がある次の部屋へ向かってくれ。',
@@ -1487,6 +1495,17 @@
           '裏切り者は嘘をついている。'
         ],
         confirm: '確認してFINAL MISSIONへ'
+      };
+      const officeAuthSuccessBriefing = {
+        label: 'ACCESS GRANTED',
+        title: '認証に成功しました。',
+        summary: 'スタッフから容疑者の取り調べ情報を受け取ってください。',
+        variant: 'office-auth-success',
+        ruleTitle: 'NEXT ACTION',
+        rules: [
+          '取り調べ情報を受け取ったら、知念との通信へ進んでください。'
+        ],
+        confirm: '取り調べ情報を受け取り、通信へ'
       };
       let current = 3;
       let maxUnlocked = 3;
@@ -2089,6 +2108,8 @@
         missionBriefingLabel.textContent = briefing.label;
         missionBriefingTitle.textContent = briefing.title;
         missionBriefingSummary.textContent = briefing.summary;
+        missionBriefing.classList.toggle('office-auth-success', briefing.variant === 'office-auth-success');
+        missionRuleTitle.textContent = briefing.ruleTitle || 'MISSION RULES';
         missionConfirmLabel.textContent = briefing.confirm;
         missionRules.replaceChildren(...briefing.rules.map(rule => {
           const item = document.createElement('li');
@@ -2177,8 +2198,8 @@
         passwordForm.querySelector('button').disabled = true;
         officePassword.disabled = true;
         nextButton.disabled = false;
-        playDialogueTransition(() => {
-          openNovelPart(officeDialogueLines, () => {
+        playMissionBriefing(officeAuthSuccessBriefing, null, () => {
+          openNovelPart(getOfficeDialogueLines(), () => {
             goTo(4, true, false);
           }, false, secondMissionBriefing);
         });
