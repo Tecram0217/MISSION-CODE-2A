@@ -1,0 +1,2599 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#070808">
+  <title>CODE:2A — OFFICE / FINAL MISSION</title>
+  <link rel="icon" type="image/png" href="assets/CODE2A.png.png">
+  <meta name="description" content="事務室のパスワード認証からFINAL MISSIONの監視映像まで。">
+  <style>
+    :root {
+      --black: #070808;
+      --panel: #0d0f0f;
+      --panel-2: #121414;
+      --white: #e8e7e1;
+      --muted: #858985;
+      --line: rgba(232, 231, 225, .14);
+      --red: #bd2929;
+      --red-bright: #ed3a31;
+      --red-soft: rgba(189, 41, 41, .14);
+      --amber: #b09a76;
+      --ease: cubic-bezier(.77, 0, .18, 1);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-width: 320px; min-height: 100%; width:100%; overflow-x:hidden; background: var(--black); color: var(--white); }
+    body {
+      min-height: 100vh;
+      overflow: hidden;
+      font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background-image:
+        linear-gradient(rgba(255,255,255,.012) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.012) 1px, transparent 1px);
+      background-size: 44px 44px;
+    }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, a:focus-visible { outline: 1px solid var(--red-bright); outline-offset: 3px; }
+    ruby { ruby-align:center; }
+    rt { color: #bbbdb7; font-size: .52em; letter-spacing: .04em; user-select:none; }
+    body:not(.easy) rt { display: none; }
+
+    .app { height: 100vh; display: grid; grid-template-rows: 72px 1fr; overflow: hidden; }
+    .topbar {
+      position: relative;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      gap: 26px;
+      padding: 0 clamp(18px, 3vw, 44px);
+      border-bottom: 1px solid var(--line);
+      background: rgba(7, 8, 8, .92);
+      backdrop-filter: blur(14px);
+    }
+    .brand { min-width: 178px; display: flex; align-items: center; gap: 12px; font: 700 14px Consolas, "Courier New", monospace; letter-spacing: .16em; }
+    .brand-mark { position: relative; width: 19px; height: 19px; border: 1px solid var(--red-bright); transform: rotate(45deg); }
+    .brand-mark::before { content: ""; position: absolute; inset: 5px; background: var(--red-bright); }
+    .classification { color: #737772; font: 9px Consolas, monospace; letter-spacing: .14em; }
+    .classification b { color: var(--red-bright); font-weight: 400; }
+    .top-actions { margin-left: auto; display: flex; align-items: center; gap: 9px; }
+    .mode-button, .gallery-button {
+      height: 38px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      background: transparent;
+      cursor: pointer;
+      color: #bbbdb7;
+      font-size: 10px;
+      letter-spacing: .08em;
+      transition: border-color .2s ease, background .2s ease, color .2s ease;
+    }
+    .mode-button:hover, .gallery-button:not(:disabled):hover { border-color: rgba(232,231,225,.45); color: white; }
+    .mode-button[aria-pressed="true"] { background: var(--white); color: var(--black); border-color: var(--white); }
+    .gallery-button { position:fixed; z-index:65; top:92px; right:clamp(14px,2.4vw,34px); min-width:150px; height:50px; display:flex; align-items:center; justify-content:center; gap:10px; padding:0 17px; border-color:rgba(237,58,49,.74); background:#8f1f1f; color:#fff; box-shadow:0 12px 35px rgba(0,0,0,.42),inset 0 0 0 1px rgba(255,255,255,.06); }
+    .gallery-button::before { content: ""; width: 7px; height: 7px; flex:0 0 auto; background:#fff; transform:rotate(45deg); }
+    .gallery-button::after { content:"ART ARCHIVE"; color:rgba(255,255,255,.62); font:7px Consolas,monospace; letter-spacing:.12em; }
+    .gallery-button:hover:not(:disabled),.gallery-button:focus-visible { border-color:#ff6b61; background:#b32727; color:#fff; }
+    .gallery-button:disabled { visibility:hidden; opacity:0; pointer-events:none; transform:translateY(-8px); }
+    .gallery-button.unlocked { animation: pulseBorder 1.6s ease 2; }
+    .timer {
+      display: none;
+      align-items: baseline;
+      gap: 10px;
+      margin-left: clamp(4px, 2vw, 24px);
+      padding-left: 22px;
+      border-left: 1px solid var(--line);
+      font-family: Consolas, monospace;
+    }
+    .timer.visible { display: flex; }
+    .timer-label { color: #737772; font-size: 8px; letter-spacing: .15em; }
+    .timer-value { min-width: 64px; color: var(--white); font-size: 19px; letter-spacing: .06em; }
+    .timer.danger .timer-value { color: var(--red-bright); animation: timerBlink 1s steps(2) infinite; }
+
+    .workspace { min-height: 0; display: grid; grid-template-columns:minmax(0,1fr); }
+
+    .content-stack { position: relative; min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) 70px; overflow: hidden; }
+    .chapter-viewport { min-height: 0; overflow: hidden; }
+    .chapter-track { height: 100%; display: flex; transition: transform .78s var(--ease); will-change: transform; }
+    .chapter {
+      min-width: 100%;
+      height: 100%;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: clamp(34px, 5vw, 76px) clamp(24px, 6vw, 92px);
+      opacity: .15;
+      transform: translateX(45px);
+      transition: opacity .42s ease, transform .72s var(--ease);
+      scrollbar-width: thin;
+      scrollbar-color: #383b37 transparent;
+    }
+    .chapter.active { opacity: 1; transform: translateX(0); }
+    .chapter-inner { width: min(1280px, 100%); margin: 0 auto; }
+    .chapter-head { display: flex; align-items: end; justify-content: space-between; gap: 30px; margin-bottom: 34px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+    .chapter-index { color: var(--red-bright); font: 10px Consolas, monospace; letter-spacing: .16em; }
+    h1 { margin: 9px 0 0; font-size: clamp(29px, 4vw, 54px); line-height: 1.12; letter-spacing: -.04em; font-weight: 650; }
+    .chapter-meta { color: #565a55; font: 8px Consolas, monospace; letter-spacing: .16em; text-align: right; line-height: 1.8; }
+    .intro-copy { max-width: 690px; margin: -14px 0 30px; color: #898d87; font-size: 12px; line-height: 1.9; }
+
+    .document-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+    .document-card, .map-card, .mission-visual {
+      position: relative;
+      margin: 0;
+      border: 1px solid var(--line);
+      background: #0a0b0b;
+      overflow: hidden;
+    }
+    .document-card figcaption, .map-card figcaption, .mission-visual figcaption { display: flex; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--line); color: #777b75; font: 8px Consolas, monospace; letter-spacing: .12em; }
+    .zoom-trigger { position: relative; width: 100%; display: block; padding: 0; border: 0; background: #080909; cursor: zoom-in; overflow: hidden; }
+    .zoom-trigger img { width: 100%; display: block; object-fit: contain; transition: transform .5s ease, opacity .3s ease; }
+    .document-card .zoom-trigger img { height: min(57vh, 700px); }
+    .zoom-trigger:hover img { transform: scale(1.015); opacity: .88; }
+    .zoom-hint { position: absolute; right: 13px; bottom: 13px; padding: 8px 10px; background: rgba(7,8,8,.82); border: 1px solid rgba(255,255,255,.18); color: white; font: 8px Consolas, monospace; letter-spacing: .1em; pointer-events: none; }
+
+    .briefing-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:18px; align-items:start; }
+    .text-dossier { border:1px solid var(--line); background:#0b0d0c; }
+    .dossier-head { display:flex; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--line); color:#70746e; font:8px Consolas,monospace; letter-spacing:.14em; }
+    .dossier-head span:first-child { color:var(--red-bright); }
+    .dossier-body { padding:clamp(22px,3vw,34px); }
+    .dossier-title { margin:0 0 20px; font-size:clamp(23px,2.8vw,36px); letter-spacing:-.035em; }
+    .story-copy p { margin:0 0 15px; color:#a5a8a2; font-size:12px; line-height:2; }
+    .story-copy p:last-child { margin-bottom:0; }
+    .story-copy strong { color:var(--white); font-weight:600; }
+    .suspect-strip { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-top:20px; }
+    .suspect { padding:11px 8px; border:1px solid var(--line); background:#090a0a; }
+    .suspect b { display:block; margin-bottom:5px; color:#d0d2cc; font-size:11px; }.suspect span { color:#656963; font:8px Consolas,monospace; }
+    .flow-note { margin-bottom:18px; padding:12px; border:1px solid rgba(237,58,49,.28); color:#9ca09a; font-size:10px; line-height:1.7; }
+    .flow-list { display:grid; gap:10px; }
+    .flow-step { display:grid; grid-template-columns:54px 1fr auto; gap:14px; align-items:center; padding:15px; border:1px solid var(--line); }
+    .flow-number { color:var(--red-bright); font:18px Consolas,monospace; }.flow-step h3 { margin:0 0 5px; font-size:13px; }.flow-step p { margin:0; color:#797d77; font-size:10px; line-height:1.6; }.flow-time { color:#6e726c; font:9px Consolas,monospace; }
+    .time-limit { margin-top:14px; padding:17px; background:var(--red-soft); color:#c9cbc5; text-align:center; font-size:12px; letter-spacing:.08em; }.time-limit b { color:var(--red-bright); font-size:24px; }
+    .source-sheet { border:1px solid var(--line); background:#0b0d0c; }
+    .source-sheet .zoom-trigger { display:grid; place-items:center; min-height:260px; padding:12px; }
+    .source-sheet .zoom-trigger img { width:100%; height:auto; max-height:72vh; object-fit:contain; }
+    .source-sheet.flow-sheet .zoom-trigger img { max-width:440px; }
+    .source-sheet.story-sheet { width:min(960px,100%); margin:0 auto; }
+    .solo-guide .dossier-body { display:grid; gap:14px; }
+    .solo-guide .dossier-title { margin-bottom:2px; }
+    .solo-guide .flow-step { grid-template-columns:42px minmax(0,1fr); }
+    .map-layout { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 25px; align-items: start; }
+    .map-card .zoom-trigger img { max-height: 63vh; }
+    .intel-note { border-top: 2px solid var(--red); padding: 22px; background: var(--panel-2); }
+    .intel-note .label { color: var(--red-bright); font: 9px Consolas, monospace; letter-spacing: .15em; }
+    .intel-note h2 { margin: 18px 0 12px; font-size: 18px; }
+    .intel-note p { margin: 0; color: #92958f; font-size: 12px; line-height: 1.9; }
+    .route-list { margin: 25px 0 0; padding: 0; list-style: none; }
+    .route-list li { display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); color: #b0b3ad; font-size: 11px; }
+    .route-list b { color: var(--red-bright); font: 10px Consolas, monospace; }
+
+    .chimen-block { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: clamp(24px, 5vw, 66px); align-items: start; }
+    .partner-card { position: sticky; top: 0; }
+    .partner-portrait { position: relative; height: 214px; overflow: hidden; border: 1px solid var(--line); background: linear-gradient(145deg, #202322, #0c0e0e 60%); }
+    .partner-portrait::before { content: ""; position: absolute; width: 82px; height: 93px; left: 43px; top: 31px; border: 1px solid #626760; border-radius: 50% 48% 42% 44%; box-shadow: inset 14px 0 0 #131515, inset -8px 0 0 #292c2a; }
+    .partner-portrait::after { content: ""; position: absolute; width: 128px; height: 84px; left: 20px; bottom: -22px; border: 1px solid #626760; border-radius: 50% 50% 0 0; background: #171919; }
+    .partner-id { position: absolute; z-index: 1; left: 13px; top: 12px; color: var(--red-bright); font: 8px Consolas, monospace; letter-spacing: .14em; }
+    .partner-status { display: flex; justify-content: space-between; margin-top: 11px; color: #797d77; font: 8px Consolas, monospace; letter-spacing: .12em; }
+    .partner-status b { color: #71a75d; font-weight: 400; }
+    .speech { position: relative; border: 1px solid var(--line); background: var(--panel-2); padding: clamp(25px, 4vw, 44px); }
+    .speech::before { content: ""; position: absolute; left: -9px; top: 38px; width: 16px; height: 16px; border-left: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--panel-2); transform: rotate(45deg); }
+    .speaker-label { display: flex; align-items: center; gap: 11px; margin-bottom: 22px; color: var(--red-bright); font: 9px Consolas, monospace; letter-spacing: .16em; }
+    .speaker-label::before { content: ""; width: 18px; height: 1px; background: var(--red-bright); }
+    .speech p { margin: 0; font-size: clamp(13px, 1.2vw, 15px); line-height: 2.12; letter-spacing: .035em; }
+    .mission-placeholder { margin-top: 25px; padding: 22px; border: 1px dashed #343733; background: rgba(255,255,255,.012); }
+    .mission-placeholder .placeholder-title { display: flex; justify-content: space-between; color: #8b8e88; font: 9px Consolas, monospace; letter-spacing: .15em; }
+    .placeholder-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 18px; }
+    .placeholder-art { aspect-ratio: 4 / 3; display: grid; place-items: center; border: 1px solid #292c29; color: #4e514d; font: 24px Georgia, serif; background: linear-gradient(135deg, #111313, #0a0b0b); }
+
+    .evidence-layout { display: grid; grid-template-columns: minmax(340px, .9fr) minmax(380px, 1.1fr); gap: 24px; align-items: stretch; }
+    .camera { position: relative; min-height: 360px; border: 1px solid var(--line); overflow: hidden; background: #080a09; }
+    .camera canvas { width: 100%; height: 100%; min-height: 360px; display: block; opacity: .78; filter: grayscale(1) contrast(1.2); }
+    .camera::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, transparent 0, transparent 3px, rgba(0,0,0,.3) 4px); mix-blend-mode: multiply; }
+    .camera-ui { position: absolute; z-index: 2; inset: 14px; pointer-events: none; font: 8px Consolas, monospace; letter-spacing: .12em; color: #c7c9c2; }
+    .rec { color: var(--red-bright); }
+    .camera-time { position: absolute; right: 0; top: 0; }
+    .camera-caption { position: absolute; left: 0; bottom: 0; padding: 7px 9px; background: rgba(0,0,0,.66); }
+    .evidence-layout .speech { height: 100%; }
+
+    .final-layout { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(300px, .7fr); gap: 26px; align-items: start; }
+    .mission-visual .zoom-trigger img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+    .final-copy { border-top: 2px solid var(--red); background: var(--panel-2); padding: 28px; }
+    .final-copy .speaker-label { margin-bottom: 18px; }
+    .final-copy p { margin: 0; font-size: 14px; line-height: 2; }
+    .fate { margin-top: 27px; padding-top: 18px; border-top: 1px solid var(--line); color: #737772; font: 9px Consolas, monospace; letter-spacing: .15em; }
+
+    .bottom-nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 clamp(20px, 4vw, 58px); border-top: 1px solid var(--line); background: rgba(8,9,9,.95); }
+    .back-button, .next-button { height: 42px; display: inline-flex; align-items: center; gap: 13px; border: 0; background: transparent; cursor: pointer; font-size: 11px; letter-spacing: .08em; }
+    .back-button { justify-self: start; color: #858983; }
+    .next-button { justify-self: end; padding: 0 18px; background: var(--white); color: var(--black); transition: background .2s ease, color .2s ease; }
+    .next-button:hover { background: var(--red-bright); color: white; }
+    .back-button:disabled, .next-button:disabled { opacity: .22; cursor: not-allowed; }
+    .nav-current { color: #585b57; font: 8px Consolas, monospace; letter-spacing: .18em; }
+    .nav-current b { color: #a8aba5; font-size: 12px; font-weight: 400; }
+
+    .gallery-drawer {
+      position: fixed;
+      z-index: 80;
+      top: 0;
+      right: 0;
+      width: min(1120px, 100vw);
+      height: 100vh;
+      display: grid;
+      grid-template-rows: 72px minmax(0,1fr) auto;
+      border-left: 1px solid var(--line);
+      background: #0a0c0b;
+      box-shadow: -28px 0 90px rgba(0,0,0,.48);
+      transform: translateX(102%);
+      transition: transform .68s var(--ease);
+    }
+    .gallery-drawer.open { transform: translate3d(0,0,0); -webkit-transform: translate3d(0,0,0); }
+    .drawer-head { display: flex; align-items: center; justify-content: space-between; padding: 0 22px; border-bottom: 1px solid var(--line); }
+    .drawer-head h2 { margin: 0; font: 12px Consolas, monospace; letter-spacing: .15em; }
+    .drawer-head h2 small { margin-left:12px; color:#686c66; font:7px Consolas,monospace; letter-spacing:.12em; }
+    .close-button { width: 36px; height: 36px; border: 1px solid var(--line); background: transparent; cursor: pointer; font-size: 18px; }
+    .gallery-memory { min-width:0; min-height:0; height:100%; display:grid; grid-template-rows:auto minmax(0,1fr); overflow:hidden; }
+    .gallery-memory-nav { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:14px; align-items:center; padding:13px 22px; border-bottom:1px solid var(--line); background:#080a09; }
+    .gallery-memory-arrow { min-width:112px; height:40px; border:1px solid #303330; background:#0d0f0e; color:#bfc2bb; cursor:pointer; font-size:10px; letter-spacing:.08em; }
+    .gallery-memory-arrow:hover,.gallery-memory-arrow:focus-visible { border-color:var(--red-bright); color:#fff; }
+    .gallery-memory-tabs { min-width:0; display:flex; justify-content:center; gap:7px; }
+    .gallery-memory-tab { width:43px; height:40px; border:1px solid #303330; background:#0d0f0e; color:#777b75; cursor:pointer; font:11px Consolas,monospace; }
+    .gallery-memory-tab.active { border-color:var(--red-bright); background:var(--red); color:#fff; }
+    .gallery-memory-viewport { height:100%; min-width:0; min-height:0; overflow:hidden; touch-action:pan-y; -webkit-overflow-scrolling:touch; }
+    .gallery-memory-track { height:100%; min-height:0; display:flex; transition:transform .68s var(--ease); will-change:transform; }
+    .gallery-memory-slide { min-width:100%; width:100%; height:100%; min-height:0; display:grid; grid-template-columns:minmax(0,1.18fr) minmax(330px,.82fr); overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; opacity:.18; transition:opacity .34s ease; }
+    .gallery-memory-slide.active { opacity:1; }
+    .gallery-memory-art {width:100%; min-height:270px; height:auto; flex-shrink:0; min-width:0; display:grid; place-items:center; padding:clamp(18px,3vw,38px); border-right:1px solid var(--line); background:radial-gradient(circle at 50% 42%,rgba(255,255,255,.045),transparent 56%),#050606; }
+    .gallery-memory-image { position:relative; width:100%; max-width:100%; padding:0; border:1px solid #303330; background:#030404; cursor:zoom-in; }
+    .gallery-memory-image img { width:100%; max-width:100%; height:auto; max-height:38dvh; display:block; object-fit:contain; user-select:none; -webkit-user-drag:none; }
+    .gallery-memory-info { min-width:0; width:100%; padding:clamp(25px,4vw,48px); background:#0b0d0c; overflow-wrap:break-word;}
+    .gallery-memory-code { display:flex; justify-content:space-between; gap:15px; margin-bottom:21px; color:var(--red-bright); font:9px Consolas,monospace; letter-spacing:.14em; }
+    .gallery-memory-info h3 { margin:0 0 18px; font-size:clamp(25px,3vw,42px); letter-spacing:-.04em; }
+    .gallery-memory-info > p { margin:0; color:#a4a8a1; font-size:13px; line-height:2; }
+    .gallery-memory-note { margin-top:26px; padding:17px; border-left:2px solid var(--red); background:#111313; color:#858982; font-size:11px; line-height:1.8; }
+    .gallery-memory-schedule { margin-top:28px; border-top:1px solid #3a3d39; border-left:1px solid #3a3d39; }
+    .gallery-memory-schedule .schedule-row { grid-template-columns:minmax(120px,.7fr) minmax(0,1.3fr); margin:0; border:0; border-right:1px solid #3a3d39; border-bottom:1px solid #3a3d39; }
+    .gallery-exit { min-height:58px; margin:0 22px 20px; border:1px solid rgba(237,58,49,.5); background:#151010; color:#e3e2dc; cursor:pointer; font-size:10px; letter-spacing:.1em; }
+    .gallery-exit:hover,.gallery-exit:focus-visible { background:var(--red); color:#fff; }
+    .art-card { display: grid; grid-template-columns: 80px 1fr; gap: 16px; align-items: center; margin-bottom: 11px; padding: 12px; border: 1px solid var(--line); background: var(--panel); }
+    .art-placeholder { aspect-ratio: 3/4; display: grid; place-items: center; border: 1px dashed #3a3d39; background: linear-gradient(145deg, #151817, #090a0a); color: #5b5f5a; font: 25px Georgia, serif; }
+    .art-card h3 { margin: 0 0 7px; font-size: 13px; font-weight: 550; }
+    .art-card p { margin: 0; color: #696d68; font-size: 10px; line-height: 1.6; }
+    .drawer-backdrop { position: fixed; z-index: 70; inset: 0; border: 0; background: rgba(0,0,0,.64); opacity: 0; pointer-events: none; transition: opacity .35s ease; }
+    .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+
+    .lightbox { position: fixed; z-index: 110; inset: 0; display: grid; grid-template-rows: 62px 1fr 64px; background: rgba(3,4,4,.96); opacity: 0; pointer-events: none; transition: opacity .28s ease; }
+    .lightbox.open { opacity: 1; pointer-events: auto; }
+    .lightbox-head, .lightbox-tools { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; border-bottom: 1px solid var(--line); }
+    .lightbox-tools { justify-content: center; gap: 8px; border-top: 1px solid var(--line); border-bottom: 0; }
+    .lightbox-title { color: #a8aba5; font: 9px Consolas, monospace; letter-spacing: .14em; }
+    .lightbox-stage { overflow:auto; display:grid; place-items:center; padding:28px; cursor:default; }
+    .lightbox-stage.can-pan { overflow:hidden; cursor:grab; touch-action:none; }
+    .lightbox-stage.can-pan.panning { cursor:grabbing; }
+    .lightbox-image { max-width:90vw; max-height:calc(100vh - 180px); transform:translate3d(0,0,0) scale(1); transform-origin:center; transition:transform .2s ease; user-select:none; -webkit-user-drag:none; pointer-events:none; will-change:transform; }
+    .tool-button { min-width: 42px; height: 36px; border: 1px solid var(--line); background: transparent; cursor: pointer; color: #c8cac4; }
+    .zoom-readout { min-width: 66px; text-align: center; color: #858983; font: 9px Consolas, monospace; }
+
+    .failure {
+      position: fixed;
+      z-index: 200;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background:
+        linear-gradient(rgba(7,8,8,.92), rgba(7,8,8,.98)),
+        repeating-linear-gradient(135deg, rgba(189,41,41,.18) 0 16px, transparent 16px 32px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .45s ease;
+    }
+    .failure.active { opacity: 1; pointer-events: auto; }
+    .failure-card { width: min(740px, 100%); border: 1px solid rgba(237,58,49,.48); background: #0b0c0c; box-shadow: 0 0 90px rgba(189,41,41,.13); }
+    .failure-head { display: flex; justify-content: space-between; padding: 15px 19px; border-bottom: 1px solid rgba(237,58,49,.28); color: var(--red-bright); font: 9px Consolas, monospace; letter-spacing: .15em; }
+    .failure-content { padding: clamp(28px, 6vw, 64px); }
+    .failure-content h2 { margin: 0 0 28px; color: var(--red-bright); font-size: clamp(31px, 5vw, 57px); letter-spacing: -.04em; }
+    .failure-content p { margin: 0 0 21px; font-size: 14px; line-height: 2.1; }
+    .failure-epilogue { padding-top: 24px; border-top: 1px solid var(--line); color: #8c8f89; }
+    .exit-link { min-height: 52px; display: flex; align-items: center; justify-content: space-between; margin-top: 32px; padding: 0 18px; background: var(--red); color: white; text-decoration: none; font-size: 12px; letter-spacing: .08em; }
+
+    .scene-transition { position: fixed; z-index: 300; inset: 0; display: grid; place-items: center; overflow: hidden; visibility: hidden; pointer-events: none; }
+    .scene-slab, .scene-stripe { position: absolute; top: -12%; bottom: -12%; left: -12%; width: 124%; transform: translateX(-116%) skewX(-7deg); }
+    .scene-slab { background: #090a09; transition: transform .86s var(--ease); }
+    .scene-stripe { left: -24%; width: 22%; background: #8f1f1f; }
+    .scene-transition.dialogue-cover .scene-slab::after,
+    .scene-transition.dialogue-reveal .scene-slab::after,
+    .scene-transition.mission-reveal .scene-slab::after { content:""; position:absolute; top:0; bottom:0; width:max(12vw,108px); background:#8f1f1f; }
+    .scene-transition.dialogue-cover .scene-slab::after { right:calc(3px - max(12vw,108px)); }
+    .scene-transition.dialogue-reveal .scene-slab::after,
+    .scene-transition.mission-reveal .scene-slab::after { left:calc(3px - max(12vw,108px)); }
+    .scene-transition.dialogue-cover .scene-stripe,
+    .scene-transition.dialogue-reveal .scene-stripe,
+    .scene-transition.mission-reveal .scene-stripe { display:none; }
+    .scene-copy { position: relative; z-index: 1; opacity: 0; color: var(--red-bright); font: 10px Consolas, monospace; letter-spacing: .28em; transition: opacity .18s ease .34s; }
+    .scene-transition.cover, .scene-transition.entry-hold, .scene-transition.release, .scene-transition.dialogue-cover, .scene-transition.dialogue-hold, .scene-transition.dialogue-reveal, .scene-transition.mission-hold, .scene-transition.mission-reveal { visibility:visible; pointer-events:auto; }
+    .scene-transition.cover .scene-slab { transform: translateX(0) skewX(-7deg); }
+    .scene-transition.cover .scene-stripe { animation: sceneStripeCover .88s var(--ease) .03s both; }
+    .scene-transition.cover .scene-copy { opacity: 1; }
+    .scene-transition.entry-hold .scene-slab { transform:translateX(0) skewX(-7deg); transition:none; }
+    .scene-transition.entry-hold .scene-stripe { transform:translateX(630%) skewX(-7deg); }
+    .scene-transition.entry-hold .scene-copy { opacity:1; transition:none; }
+    .scene-transition.release .scene-slab { transform: translateX(116%) skewX(-7deg); }
+    .scene-transition.release .scene-stripe { animation: sceneStripeRelease .88s var(--ease) both; }
+    .scene-transition.release .scene-copy { opacity: 0; transition-delay: 0s; }
+    .scene-transition.dialogue-cover .scene-slab { background:#000; transform:translateX(0) skewX(-7deg); transition-duration:.85s; }
+    .scene-transition.dialogue-cover .scene-copy,.scene-transition.dialogue-hold .scene-copy,.scene-transition.dialogue-reveal .scene-copy { opacity:0; transition-delay:0s; }
+    .scene-transition.dialogue-hold .scene-slab { background:#000; transform:translateX(0) skewX(-7deg); transition:none; }
+    .scene-transition.dialogue-hold .scene-stripe { transform:translateX(630%) skewX(-7deg); }
+    .scene-transition.dialogue-reveal .scene-slab { background:#000; transform:translateX(120%) skewX(-7deg); transition-duration:.9s; }
+    .scene-transition.mission-hold .scene-slab { background:#000; transform:translateX(0) skewX(-7deg); transition:none; }
+    .scene-transition.mission-hold .scene-stripe { transform:translateX(630%) skewX(-7deg); }
+    .scene-transition.mission-reveal .scene-slab { background:#000; transform:translateX(120%) skewX(-7deg); transition-duration:1.4s; }
+    .scene-transition.mission-hold .scene-copy,.scene-transition.mission-reveal .scene-copy { opacity:0; transition-delay:0s; }
+    .mission-briefing { --mission-intro-scale:1.4; --mission-intro-shift:32vh; position:absolute; z-index:2; inset:0; width:100%; height:100%; overflow:auto; display:grid; grid-template-rows:auto auto auto auto 1fr; align-content:start; padding:clamp(32px,6vh,74px) clamp(24px,8vw,132px); border:0; background:linear-gradient(112deg,rgba(26,4,4,.38),transparent 43%),#000; opacity:0; transform:translateY(16px); pointer-events:none; transition:opacity .22s ease,transform .34s var(--ease); }
+    .scene-transition.mission-hold .mission-briefing { opacity:1; transform:translateY(0); pointer-events:auto; }
+    .scene-transition.mission-reveal .mission-briefing { opacity:1; transform:translateX(149%); pointer-events:none; transition:transform 1.4s var(--ease); will-change:transform; }
+    .mission-briefing-head { position:relative; display:block; text-align:center; padding-bottom:clamp(15px,2.5vh,28px); border-bottom:1px solid transparent; color:#777b75; font:9px Consolas,monospace; letter-spacing:.2em; opacity:0; transform-origin:center top; }
+    .mission-briefing-head b { display:block; color:var(--red-bright); font:700 clamp(46px,7vw,104px)/.86 Arial Black,Impact,sans-serif; letter-spacing:-.065em; text-transform:uppercase; white-space:nowrap; }
+    .mission-briefing-head span { position:absolute; right:0; top:8px; white-space:nowrap; opacity:0; }
+    .mission-briefing h2 { margin:clamp(23px,4vh,44px) 0 12px; color:#f5f3ed; font-size:clamp(28px,4.5vw,64px); line-height:1.2; letter-spacing:-.035em; opacity:0; transform:translateY(20px); }
+    .mission-briefing-summary { max-width:980px; margin:0; color:#9a9e98; font-size:clamp(11px,1.15vw,15px); line-height:1.9; opacity:0; transform:translateY(16px); }
+    .mission-rule-title { margin:clamp(24px,4vh,42px) 0 9px; color:var(--red-bright); font:10px Consolas,monospace; letter-spacing:.2em; opacity:0; transform:translateY(13px); }
+    .mission-rules { max-width:1050px; margin:0; padding:0; list-style:none; border-top:1px solid rgba(232,231,225,.14); }
+    .mission-rules li { display:grid; grid-template-columns:18px 1fr; gap:14px; padding:11px 0; border-bottom:1px solid rgba(232,231,225,.1); color:#d0d2cc; font-size:clamp(11px,1vw,14px); line-height:1.7; opacity:0; transform:translateY(12px); }
+    .mission-rules li { margin-top:12px; padding:18px 20px; border:1px solid rgba(237,58,49,.48); border-left:4px solid var(--red-bright); background:rgba(189,41,41,.13); color:#fff; font-size:clamp(15px,1.6vw,21px); font-weight:700; }
+    .mission-rule-mark { width:7px; height:7px; margin-top:.62em; background:var(--red-bright); transform:skewX(-10deg); }
+    .mission-confirm { width:min(520px,100%); min-height:52px; align-self:end; display:flex; align-items:center; justify-content:space-between; margin-top:clamp(22px,4vh,42px); padding:0 18px; border:1px solid var(--red-bright); background:var(--red); color:#fff; cursor:pointer; font-size:11px; letter-spacing:.1em; opacity:0; transform:translateY(12px); pointer-events:none; transition:background .2s ease,border-color .2s ease; }
+    .scene-transition.mission-hold .mission-briefing-head { animation:missionTitleDock 1.9s var(--ease) both; }
+    .scene-transition.mission-hold .mission-briefing-head span { animation:missionContentReveal .42s ease 1.42s both; }
+    .scene-transition.mission-hold .mission-briefing h2 { animation:missionContentReveal .5s ease 1.28s both; }
+    .scene-transition.mission-hold .mission-briefing-summary { animation:missionContentReveal .5s ease 1.44s both; }
+    .scene-transition.mission-hold .mission-rule-title { animation:missionContentReveal .45s ease 1.6s both; }
+    .scene-transition.mission-hold .mission-rules li { animation:missionContentReveal .45s ease both; }
+    .scene-transition.mission-hold .mission-rules li:nth-child(1) { animation-delay:1.72s; }
+    .scene-transition.mission-hold .mission-rules li:nth-child(2) { animation-delay:1.84s; }
+    .scene-transition.mission-hold .mission-rules li:nth-child(3) { animation-delay:1.96s; }
+    .scene-transition.mission-hold .mission-rules li:nth-child(4) { animation-delay:2.08s; }
+    .scene-transition.mission-hold .mission-confirm { animation:missionContentReveal .48s ease 2.2s both; }
+    .scene-transition.mission-hold .mission-confirm.ready { pointer-events:auto; }
+    .scene-transition.mission-reveal .mission-briefing-head,
+    .scene-transition.mission-reveal .mission-briefing-head span,
+    .scene-transition.mission-reveal .mission-briefing h2,
+    .scene-transition.mission-reveal .mission-briefing-summary,
+    .scene-transition.mission-reveal .mission-rule-title,
+    .scene-transition.mission-reveal .mission-rules li,
+    .scene-transition.mission-reveal .mission-confirm { opacity:1; transform:none; }
+    .scene-transition.mission-reveal .mission-briefing-head { border-color:rgba(237,58,49,.4); }
+    .mission-confirm:hover { background:var(--red-bright); }
+    .mission-confirm:disabled { opacity:.5; cursor:wait; }
+    .difficulty-badge { height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 13px; border: 1px solid rgba(237,58,49,.38); color: var(--red-bright); font: 9px Consolas,monospace; letter-spacing: .12em; }
+    .difficulty-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--red-bright); }
+
+    .map-card.fullscreen { position:fixed; z-index:130; inset:12px; display:grid; grid-template-rows:auto minmax(0,1fr); overflow:auto; background:#070808; box-shadow:0 0 0 100vmax rgba(0,0,0,.88); }
+    .map-card.fullscreen .map-blueprint { width:min(100%,calc((100vh - 90px) * 16 / 9)); height:auto; min-height:0; max-height:none; margin:auto; aspect-ratio:16/9; transform:scale(var(--map-zoom,1)); transform-origin:center; transition:transform .2s ease; }
+    .map-card.fullscreen .map-expand { position:fixed; z-index:132; top:26px; right:26px; bottom:auto; border-color:var(--red); background:var(--red); color:#fff; box-shadow:0 8px 30px rgba(0,0,0,.55); }
+    .map-zoom-tools { display:none; }
+    .map-card.fullscreen .map-zoom-tools { position:fixed; z-index:132; left:50%; bottom:26px; transform:translateX(-50%); display:flex; align-items:center; gap:8px; padding:8px; border:1px solid var(--line); background:rgba(7,8,8,.94); box-shadow:0 8px 30px rgba(0,0,0,.55); }
+    .map-card.fullscreen.can-pan .map-blueprint { cursor:grab; touch-action:none; }
+    .map-card.fullscreen.can-pan.panning .map-blueprint { cursor:grabbing; transition:none; }
+    body.map-fullscreen { overflow:hidden; }
+    .map-blueprint { position: relative; width: 100%; aspect-ratio: 16/9; min-height: 390px; overflow: hidden; background: radial-gradient(circle at 60% 40%,rgba(255,255,255,.045),transparent 44%),#080a09; }
+    .map-blueprint::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg,transparent 0 3px,rgba(255,255,255,.018) 4px); }
+    .floor-outline { position: absolute; left: 24.5%; top: 19.5%; width: 36.7%; height: 67%; border: 2px solid #d8dad4; }
+    .office-room { position: absolute; left: 34%; top: 32%; width: 22.5%; height: 30%; border: 6px solid #d8dad4; border-bottom: 0; }
+    .map-divider { position:absolute; z-index:1; left:43%; top:61.5%; height:25%; border-left:6px solid #d8dad4; }
+    .map-label { position: absolute; z-index: 2; color:#d8dad4; font-size: clamp(11px,1.25vw,17px); letter-spacing:.08em; }
+    .map-label.exhibition { left: 14.5%; top: 31%; writing-mode: vertical-rl; letter-spacing:.22em; }
+    .map-label.office { left: 40%; top: 43%; font-size: clamp(18px,2.4vw,34px); }
+    .map-label.entrance { left: 62.5%; top: 24%; }
+    .map-label.exit { left: 62.5%; top: 72%; }
+    .map-label.spy { left: 57.4%; top: 33%; writing-mode: vertical-rl; color:#8c908a; font-size:11px; }
+    .map-device { position:absolute; z-index:2; left:43.2%; bottom:13.5%; padding:6px 10px; border:1px solid #d8dad4; color:#d8dad4; background:#080a09; font-size:11px; }
+    .map-point { position:absolute; z-index:3; width:31px; height:31px; display:grid; place-items:center; border:1px solid var(--red-bright); border-radius:50%; background:#080a09; color:white; font:12px Consolas,monospace; box-shadow:0 0 0 5px rgba(189,41,41,.13); }
+    .map-point.a { left:23.2%; top:67%; }.map-point.b { left:28.4%; top:81%; }.map-point.c { left:35.3%; top:81%; }.map-point.d { left:41.5%; top:67%; }
+    .map-route { position:absolute; z-index:1; height:1px; border-top:1px dashed rgba(232,231,225,.45); transform-origin:left center; }
+    .map-route.r1 { left:43%; top:72%; width:17%; transform:rotate(-29deg); }.map-route.r2 { left:35%; top:47%; width:16%; transform:rotate(43deg); }.map-route.r3 { left:24.5%; top:27.5%; width:12%; transform:rotate(15deg); }
+    .map-expand { position:absolute; z-index:5; right:13px; bottom:13px; height:36px; padding:0 13px; border:1px solid var(--line); background:rgba(7,8,8,.88); color:white; cursor:pointer; font:8px Consolas,monospace; letter-spacing:.12em; }
+    .source-reference { width:100%; min-height:42px; display:flex; align-items:center; justify-content:space-between; margin-top:12px; padding:0 13px; border:1px solid var(--line); background:transparent; color:#858983; cursor:pointer; font-size:10px; }
+
+    .painting-experience { border:1px solid var(--line); background:#0a0c0b; }
+    .painting-toolbar { min-height:58px; display:grid; grid-template-columns:52px 1fr 52px; align-items:center; border-bottom:1px solid var(--line); }
+    .painting-arrow { height:100%; border:0; background:transparent; color:#b9bbb5; cursor:pointer; font-size:19px; }
+    .painting-arrow:hover { background:rgba(255,255,255,.035); color:white; }
+    .painting-dots { display:flex; justify-content:center; gap:8px; }
+    .painting-dot { width:34px; height:29px; border:1px solid #343733; background:transparent; color:#777b75; cursor:pointer; font:10px Consolas,monospace; }
+    .painting-dot.active { border-color:var(--red-bright); background:var(--red); color:white; }
+    .painting-viewport { overflow:hidden; touch-action:pan-y; cursor:grab; }
+    .painting-viewport.dragging { cursor:grabbing; }
+    .painting-track { display:flex; transition:transform .68s var(--ease); will-change:transform; }
+    .painting-slide { min-width:100%; display:grid; grid-template-columns:minmax(0,1.1fr) minmax(340px,.9fr); gap:0; opacity:.2; transition:opacity .35s ease; }
+    .painting-slide.active { opacity:1; }
+    .artwork-column { min-width:0; padding:20px; border-right:1px solid var(--line); background:#080909; }
+    .artwork-frame { position:relative; margin:0; overflow:hidden; border:1px solid var(--line); background:#050606; }
+    .artwork-frame figcaption { display:flex; justify-content:space-between; padding:11px 13px; border-bottom:1px solid var(--line); color:#71756f; font:8px Consolas,monospace; letter-spacing:.12em; }
+    .artwork-frame .zoom-trigger img { width:100%; height:min(43vh,480px); object-fit:contain; }
+    .poster-frame { margin-top:12px; }
+    .poster-frame .zoom-trigger img { height:min(30vh,300px); }
+    .puzzle-column { padding:clamp(23px,3vw,38px); }
+    .puzzle-code { display:flex; justify-content:space-between; margin-bottom:18px; color:var(--red-bright); font:9px Consolas,monospace; letter-spacing:.14em; }
+    .puzzle-column h2 { margin:0 0 20px; font-size:clamp(21px,2.2vw,31px); letter-spacing:-.03em; }
+    .problem-text { padding:20px; border-left:2px solid var(--red); background:var(--panel-2); font-size:14px; line-height:2; letter-spacing:.035em; }
+    .cipher-text { display:block; margin:10px 0; color:white; font:600 clamp(17px,1.8vw,23px) Consolas,monospace; letter-spacing:.18em; }
+    .gojuon-grid { display:grid; grid-template-columns:repeat(10,1fr); margin-top:15px; border-top:1px solid #424641; border-left:1px solid #424641; }
+    .gojuon-grid span { aspect-ratio:1; display:grid; place-items:center; border-right:1px solid #424641; border-bottom:1px solid #424641; color:#d8dad4; font-size:clamp(10px,1.2vw,15px); }
+    .gojuon-grid span.blank { color:transparent; background:rgba(255,255,255,.018); }
+    .answer-note { margin-top:18px; }
+    .answer-note label { display:block; margin-bottom:8px; color:#777b75; font:8px Consolas,monospace; letter-spacing:.14em; }
+    .answer-note input { width:100%; height:46px; padding:0 14px; border:1px solid #363935; background:#090a0a; color:white; outline:none; letter-spacing:.15em; }
+    .answer-note input:focus { border-color:var(--red-bright); }
+    .hint-stack { margin-top:18px; }
+    .hint-reveal { width:100%; min-height:44px; display:flex; align-items:center; justify-content:space-between; padding:0 14px; border:1px solid rgba(237,58,49,.38); background:transparent; color:#d0d2cc; cursor:pointer; font-size:11px; }
+    .hint-reveal:hover { background:var(--red-soft); }
+    .hint-card { margin-top:8px; padding:15px 16px; border:1px solid var(--line); background:#111313; color:#a9aca6; font-size:12px; line-height:1.85; animation:hintIn .34s ease both; }
+    .hint-card b { display:block; margin-bottom:7px; color:var(--red-bright); font:9px Consolas,monospace; letter-spacing:.12em; }
+    .hint-card[hidden] { display:none; }
+    .puzzle-deck { min-width:0; border:1px solid var(--line); background:#090b0a; overflow:hidden; }
+    .puzzle-deck-nav { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:14px; align-items:center; padding:13px 18px; border-bottom:1px solid var(--line); background:#080a09; }
+    .puzzle-deck-arrow { min-width:120px; height:42px; border:1px solid #303330; background:#0d0f0e; color:#bfc2bb; cursor:pointer; font-size:10px; letter-spacing:.08em; }
+    .puzzle-deck-arrow:hover,.puzzle-deck-arrow:focus-visible { border-color:var(--red-bright); color:#fff; }
+    .puzzle-deck-tabs { min-width:0; display:flex; justify-content:center; gap:7px; }
+    .puzzle-deck-tab { width:48px; height:42px; border:1px solid #303330; background:#0d0f0e; color:#777b75; cursor:pointer; font:11px Consolas,monospace; }
+    .puzzle-deck-tab.active { border-color:var(--red-bright); background:var(--red); color:#fff; }
+    .puzzle-deck-viewport { min-width:0; overflow:hidden; touch-action:pan-y; -webkit-overflow-scrolling:touch; }
+    .puzzle-deck-track { width:100%; display:flex; align-items:stretch; transition:transform .68s var(--ease); will-change:transform; }
+    .puzzle-slide { flex:0 0 100%; min-width:100%; width:100%; display:block; opacity:.18; transition:opacity .34s ease; }
+    .puzzle-slide.active { opacity:1; }
+    .puzzle-slide-media { min-width:0; display:grid; place-items:center; padding:clamp(16px,3vw,34px); border-bottom:1px solid var(--line); background:radial-gradient(circle at 50% 42%,rgba(255,255,255,.05),transparent 58%),#050606; }
+    .puzzle-artwork { width:min(780px,100%); margin:0; border:1px solid #303330; background:#090a0a; box-shadow:0 18px 42px rgba(0,0,0,.36); }
+    .puzzle-artwork figcaption { padding:9px 12px; border-bottom:1px solid #303330; color:#8d918a; font:8px Consolas,monospace; letter-spacing:.13em; }
+    .puzzle-artwork,.puzzle-artwork * { user-select:none; -webkit-user-drag:none; }
+    .puzzle-artwork .zoom-trigger { min-height:0; padding:10px; touch-action:pan-y; cursor:grab; }
+    .puzzle-artwork .zoom-trigger:active { cursor:grabbing; }
+    .puzzle-artwork .zoom-trigger img { width:100%; height:auto; max-height:52vh; object-fit:contain; }
+    .puzzle-slide-body { width:min(920px,100%); min-width:0; margin:0 auto; padding:clamp(22px,3.4vw,42px); background:#0b0d0c; overflow-wrap:anywhere; }
+    .puzzle-slide-body .puzzle-code { color:var(--red-bright); font:9px Consolas,monospace; letter-spacing:.15em; }
+    .puzzle-slide-body h2 { margin:13px 0 12px; font-size:clamp(22px,2.6vw,34px); }
+    .puzzle-slide-body .problem-text { margin:0; color:#a9aca6; font-size:13px; line-height:1.9; }
+    .puzzle-slide-body .answer-note { margin:20px 0; }
+    .puzzle-slide-body .hint-stack { margin-top:18px; }
+    .office-answer-review { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:0 0 24px; }
+    .office-answer-review label { display:block; color:#8f938d; font:9px Consolas,monospace; letter-spacing:.11em; }
+    .office-answer-review input { width:100%; height:46px; margin-top:8px; padding:0 12px; border:1px solid #363935; background:#090a0a; color:#fff; outline:0; font:16px "Yu Gothic",sans-serif; letter-spacing:.14em; }
+    .office-answer-review input:focus { border-color:var(--red-bright); }
+    .exhibition-schedule { margin-top:20px; border-top:1px solid #3a3d39; border-left:1px solid #3a3d39; }
+    .exhibition-schedule .schedule-row { grid-template-columns:minmax(150px,.75fr) minmax(0,1.25fr); margin:0; border:0; border-right:1px solid #3a3d39; border-bottom:1px solid #3a3d39; }
+    .office-password-puzzle { margin:0 0 24px; padding:20px; border:1px solid rgba(237,58,49,.34); border-left:3px solid var(--red); background:var(--red-soft); }
+    .office-password-puzzle .puzzle-code { margin-bottom:12px; }
+    .office-password-puzzle h3 { margin:0 0 12px; font-size:clamp(19px,2.5vw,28px); }
+    .office-password-puzzle p { margin:0; color:#c0c2bc; font-size:14px; line-height:2; }
+    .office-password-hints { margin-top:18px; }
+    .hint-terminal-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; align-items:start; }
+    .hint-terminal-card { min-width:0; padding:clamp(20px,3vw,30px); border:1px solid var(--line); border-top:2px solid var(--red); background:#0b0d0c; }
+    .hint-terminal-code { margin-bottom:13px; color:var(--red-bright); font:9px Consolas,monospace; letter-spacing:.15em; }
+    .hint-terminal-card h2 { margin:0; font-size:clamp(20px,2.5vw,30px); }
+    .password-clue { display:grid; grid-template-columns:90px 1fr auto; gap:19px; align-items:center; margin-top:16px; padding:19px; border:1px solid rgba(237,58,49,.34); background:var(--red-soft); }
+    .password-clue strong { color:var(--red-bright); font:10px Consolas,monospace; letter-spacing:.14em; }
+    .password-clue p { margin:0; font-size:12px; line-height:1.85; }
+    .office-jump { min-height:42px; padding:0 15px; border:1px solid var(--red-bright); background:var(--red); color:white; cursor:pointer; font-size:10px; letter-spacing:.08em; white-space:nowrap; }
+    .office-gate { width:min(720px,100%); margin:0 auto; border:1px solid var(--line); background:#0b0d0c; box-shadow:16px 16px 0 rgba(189,41,41,.07); }
+    .office-gate-head { display:flex; justify-content:space-between; padding:16px 19px; border-bottom:1px solid var(--line); color:#71756f; font:8px Consolas,monospace; letter-spacing:.15em; }
+    .office-gate-head span:first-child { color:var(--red-bright); }
+    .office-gate-body { padding:clamp(28px,5vw,58px); }
+    .office-gate-body h2 { margin:0 0 14px; font-size:clamp(27px,4vw,46px); letter-spacing:-.04em; }
+    .office-gate-body > p { margin:0 0 28px; color:#8c908a; font-size:12px; line-height:1.9; }
+    .password-form label { display:block; margin-bottom:9px; color:#777b75; font:8px Consolas,monospace; letter-spacing:.14em; }
+    .password-row { display:grid; grid-template-columns:1fr 100px; }
+    .password-row input,.password-row button { height:52px; border-radius:0; }
+    .password-row input { min-width:0; padding:0 16px; border:1px solid #3a3d39; background:#070808; color:white; outline:none; font-size:18px; letter-spacing:.2em; }
+    .password-row input:focus { border-color:var(--red-bright); }
+    .password-row button { border:1px solid var(--red); background:var(--red); color:white; cursor:pointer; font-size:11px; }
+    .password-feedback { min-height:36px; padding-top:11px; color:#d56e65; font-size:11px; }
+    .password-feedback.correct { color:#82b96c; }
+    .schedule { margin-top:18px; border-top:1px solid var(--line); }
+    .schedule-row { display:grid; grid-template-columns:120px 1fr; border-bottom:1px solid var(--line); }
+    .schedule-row span { padding:11px; color:#92958f; font-size:11px; }
+    .schedule-row span:first-child { color:#686c67; font-family:Consolas,monospace; border-right:1px solid var(--line); }
+    .novel-scene {
+      position: fixed;
+      z-index: 185;
+      inset: 0;
+      visibility: hidden;
+      overflow: hidden;
+      padding: clamp(18px, 3vw, 44px);
+      background: #070808;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(5%);
+      transition: opacity .48s ease, transform .62s var(--ease), visibility 0s linear .62s;
+    }
+    .novel-scene::before { content:""; position:absolute; inset:0; background:linear-gradient(90deg,transparent 49.9%,rgba(255,255,255,.025) 50%,transparent 50.1%),linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px); background-size:100% 100%,100% 38px; pointer-events:none; }
+    .novel-scene::after { content:"CHINEN / PARTNER"; position:absolute; right:-.04em; top:8%; color:rgba(255,255,255,.025); font:700 clamp(70px,13vw,190px)/.8 Consolas,monospace; letter-spacing:-.08em; writing-mode:vertical-rl; }
+    .novel-scene.open { visibility:visible; opacity:1; pointer-events:auto; transform:translateX(0); transition-delay:0s; }
+    .novel-scene.closing { opacity:0; transform:translateX(-5%); pointer-events:none; }
+    .novel-scene.transitioning { pointer-events:none; }
+    .novel-stage { position:relative; z-index:1; width:min(1320px,100%); height:100%; margin:auto; display:grid; grid-template-rows:auto 1fr auto; }
+    .novel-status { display:flex; align-items:center; justify-content:space-between; padding-bottom:14px; border-bottom:1px solid var(--line); color:#696d67; font:9px Consolas,monospace; letter-spacing:.16em; }
+    .novel-status b { color:var(--red-bright); font-weight:400; }
+    .novel-visual { position:relative; min-height:0; overflow:hidden; }
+    .novel-character { position:absolute; left:clamp(5%,10vw,150px); bottom:-2%; width:clamp(240px,31vw,450px); height:92%; filter:drop-shadow(24px 0 0 rgba(189,41,41,.06)); }
+    .novel-character::before { content:""; position:absolute; z-index:2; left:34%; top:7%; width:32%; aspect-ratio:1; border-radius:50% 50% 44% 44%; background:linear-gradient(135deg,#292c29,#0c0e0d 72%); box-shadow:inset -14px -4px 0 rgba(255,255,255,.025); }
+    .novel-character::after { content:""; position:absolute; left:4%; right:4%; bottom:-18%; height:77%; background:linear-gradient(112deg,#252824 0 35%,#0b0d0c 68%); clip-path:polygon(24% 10%,42% 0,58% 0,76% 10%,100% 100%,0 100%); border-top:1px solid rgba(255,255,255,.08); }
+    .novel-id { position:absolute; left:0; bottom:11%; z-index:3; padding:13px 16px; border-left:2px solid var(--red-bright); background:rgba(7,8,8,.78); }
+    .novel-id b { display:block; margin-bottom:5px; font-size:15px; letter-spacing:.13em; }
+    .novel-id span { color:#737771; font:8px Consolas,monospace; letter-spacing:.15em; }
+    .novel-signal { position:absolute; top:18%; right:9%; width:min(390px,35%); padding:18px; border:1px solid var(--line); color:#777b75; font:9px Consolas,monospace; line-height:2; letter-spacing:.13em; }
+    .novel-signal b { color:var(--red-bright); font-weight:400; }
+    .novel-dialogue { position:relative; z-index:4; width:min(1100px,100%); margin:0 auto; padding:0 0 0 4px; background:linear-gradient(90deg,var(--red),var(--red)) left/4px 100% no-repeat; box-shadow:0 -25px 70px rgba(0,0,0,.46); }
+    .novel-dialogue-inner { display:grid; grid-template-columns:1fr auto; gap:12px 24px; min-height:180px; padding:clamp(22px,3vw,34px); border:1px solid rgba(232,231,225,.2); background:rgba(10,11,11,.97); }
+    .novel-speaker { color:var(--red-bright); font:10px Consolas,monospace; letter-spacing:.16em; }
+    .novel-counter { color:#656963; font:9px Consolas,monospace; letter-spacing:.14em; }
+    .novel-text { grid-column:1/-1; margin:0; min-height:55px; color:#e3e2dc; font-size:clamp(13px,1.25vw,16px); line-height:2; letter-spacing:.025em; }
+    .novel-back,.novel-advance { min-width:150px; min-height:42px; padding:0 15px; border:1px solid rgba(237,58,49,.58); background:transparent; color:#d8d9d3; cursor:pointer; font:9px Consolas,monospace; letter-spacing:.14em; }
+    .novel-back { grid-column:1; justify-self:start; border-color:#3a3d39; color:#9a9e97; }
+    .novel-advance { grid-column:2; justify-self:end; }
+    .novel-back:hover,.novel-back:focus-visible,.novel-advance:hover,.novel-advance:focus-visible { background:var(--red); color:white; }
+    .novel-back[hidden],.novel-advance[hidden],.novel-choices[hidden] { display:none; }
+    .novel-choices { grid-column:1/-1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .novel-choice { min-height:48px; border:1px solid #3a3d39; background:#0c0e0d; color:#c5c7c1; cursor:pointer; font-size:11px; letter-spacing:.1em; }
+    .novel-choice.proceed { border-color:rgba(237,58,49,.58); background:var(--red); color:white; }
+    .novel-choice:hover,.novel-choice:focus-visible { border-color:var(--red-bright); }
+    .future-placeholder { min-height:370px; display:grid; place-items:center; padding:36px; border:1px dashed #343733; background:radial-gradient(circle,rgba(189,41,41,.08),transparent 58%); text-align:center; }
+    .future-placeholder strong { display:block; margin-bottom:14px; color:#6d706b; font:10px Consolas,monospace; letter-spacing:.17em; }
+    .future-placeholder h2 { margin:0 0 14px; font-size:clamp(25px,4vw,45px); }
+    .future-placeholder p { margin:0; color:#727670; font-size:12px; line-height:1.9; }
+    .investigation-body,.investigation-layout,.investigation-decision,.evidence-panel,.evidence-panel-body,.transcript-list,.transcript-card,.transcript-name,.transcript-body { min-width:0; max-width:100%; }
+    .investigation-layout { display:grid; grid-template-columns:minmax(0,1.08fr) minmax(340px,.92fr); gap:18px; align-items:start; }
+    .investigation-layout.camera-only { grid-template-columns:minmax(0,1fr); }
+    .investigation-layout.camera-only .evidence-panel { width:min(960px,100%); margin:0 auto; }
+    .evidence-panel { width:100%; border:1px solid var(--line); background:#0b0d0c; }
+    .evidence-panel-head { display:flex; justify-content:space-between; gap:20px; padding:14px 17px; border-bottom:1px solid var(--line); color:#737771; font:8px Consolas,monospace; letter-spacing:.15em; }
+    .evidence-panel-head b { color:var(--red-bright); font-weight:400; }
+    .evidence-panel-body { padding:clamp(18px,2.6vw,30px); }
+    .evidence-panel-body > h2 { margin:0 0 8px; font-size:clamp(22px,2.8vw,34px); }
+    .evidence-lead { margin:0 0 20px; color:#898d87; font-size:12px; line-height:1.9; }
+    .transcript-list { display:grid; gap:11px; }
+    .transcript-card { border:1px solid #2f322f; background:#0e100f; }
+    .transcript-name { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid #292c29; }
+    .transcript-name strong,.transcript-name b { font-size:15px; letter-spacing:.06em; }
+    .transcript-name span { color:#626660; font:8px Consolas,monospace; letter-spacing:.12em; }
+    .transcript-body { padding:15px; }
+    .transcript-body p { margin:0 0 10px; color:#b1b4ad; font-size:12px; line-height:1.85; overflow-wrap:anywhere; }
+    .transcript-body p:last-child { margin-bottom:0; }
+    .transcript-body b { color:#757a74; font-weight:600; }
+    .cctv-frame { position:relative; overflow:hidden; width:100%; min-height:0; height:auto; aspect-ratio:16/10; border:1px solid #323632; background:linear-gradient(rgba(5,9,7,.25),rgba(4,7,5,.78)),repeating-linear-gradient(90deg,#151a16 0 12%,#0c100d 12% 25%); }
+    .cctv-fallback { position:absolute; inset:0; }
+    .cctv-video { position:absolute; z-index:12; inset:0; display:none; width:100%; height:100%; background:#000; object-fit:contain; }
+    .cctv-media-port.has-video .cctv-video { display:block; }
+    .cctv-media-port.has-video .cctv-fallback { display:none; }
+    .cctv-port-badge { position:absolute; z-index:11; left:10px; bottom:10px; padding:7px 9px; border:1px solid rgba(232,231,225,.22); background:rgba(4,7,5,.8); color:#969d96; font:8px Consolas,monospace; letter-spacing:.12em; }
+    .cctv-frame::before { content:""; position:absolute; z-index:8; inset:0; background:repeating-linear-gradient(0deg,transparent 0 4px,rgba(255,255,255,.035) 5px); pointer-events:none; }
+    .cctv-frame::after { content:""; position:absolute; z-index:9; left:0; right:0; height:2px; background:rgba(219,226,214,.18); animation:cctvScan 3.4s linear infinite; }
+    .cctv-meta { position:absolute; z-index:10; width:auto; top:13px; left:10px; right:10px; display:flex; justify-content:space-between; color:#d1d6ce; font:9px Consolas,monospace; letter-spacing:.1em; text-shadow:0 1px 3px black; }
+    .cctv-meta b { color:#e85a52; font-weight:400; }
+    .cctv-door { position:absolute; left:12%; bottom:0; width:30%; height:72%; border:3px solid #697069; border-bottom:0; background:#111713; }
+    .cctv-door::after { content:"事務室"; position:absolute; top:12px; left:50%; transform:translateX(-50%); color:#818981; font-size:12px; white-space:nowrap; }
+    .cctv-person { position:absolute; z-index:4; left:42%; bottom:4%; width:94px; height:218px; animation:cctvDrift 2.8s ease-in-out infinite alternate; }
+    .cctv-person::before { content:""; position:absolute; left:29px; top:0; width:42px; height:48px; border-radius:50%; background:#ffffff; }
+    .cctv-person::after { content:""; position:absolute; left:13px; top:42px; width:70px; height:142px; background:#ffffff; clip-path:polygon(28% 0,72% 0,100% 100%,0 100%); }
+    .cctv-bag { position:absolute; z-index:5; right:-12px; top:91px; width:45px; height:52px; border:4px solid #b0c2b98c; border-radius:4px 4px 12px 12px; }
+    .cctv-bag::before { content:""; position:absolute; left:7px; right:7px; top:-19px; height:18px; border:4px solid #d5deda93; border-bottom:0; border-radius:14px 14px 0 0; }
+    .cctv-artwork { position:absolute; right:7%; top:20%; width:27%; height:42%; display:grid; place-items:center; border:7px solid #4f564f; background:#d5d7ce; box-shadow:0 0 0 1px #111; }
+    .cctv-artwork::after { content:"DISPLAY D"; position:absolute; right:2px; bottom:-24px; color:#a8afa7; font:8px Consolas,monospace; letter-spacing:.12em; }
+.penguin-scene {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+
+    /* 夜空：二枚の紙を貼り合わせたような上下二段のムラ + 星の飛沫 */
+    background:
+        /* 星（白・大小さまざま） */
+        radial-gradient(circle at 9% 10%, #fff 0 1px, transparent 1.6px),
+        radial-gradient(circle at 21% 5%, #fff 0 1px, transparent 1.6px),
+        radial-gradient(circle at 33% 19%, #fff 0 1.3px, transparent 1.9px),
+        radial-gradient(circle at 62% 8%, #fff 0 1px, transparent 1.6px),
+        radial-gradient(circle at 90% 9%, #fff 0 1.3px, transparent 1.9px),
+        radial-gradient(circle at 6% 41%, #fff 0 1.2px, transparent 1.8px),
+        radial-gradient(circle at 15% 60%, #fff 0 1px, transparent 1.6px),
+        radial-gradient(circle at 8% 85%, #fff 0 1.4px, transparent 2px),
+        radial-gradient(circle at 28% 95%, #fff 0 1px, transparent 1.6px),
+        radial-gradient(circle at 88% 60%, #fff 0 1.2px, transparent 1.8px),
+        radial-gradient(circle at 94% 80%, #fff 0 1px, transparent 1.6px),
+        radial-gradient(circle at 74% 93%, #fff 0 1.4px, transparent 2px),
+        radial-gradient(circle at 53% 97%, #fff 0 1px, transparent 1.6px),
+        radial-gradient(circle at 41% 6%, #fff 0 1px, transparent 1.6px),
+        /* 星（淡い黄緑） */
+        radial-gradient(circle at 17% 27%, #d9e07a 0 1.4px, transparent 2px),
+        radial-gradient(circle at 71% 5%, #d9e07a 0 1.1px, transparent 1.8px),
+        radial-gradient(circle at 62% 87%, #d9e07a 0 1.4px, transparent 2px),
+        radial-gradient(circle at 11% 95%, #d9e07a 0 1.1px, transparent 1.8px),
+        /* 星（かすかな水色） */
+        radial-gradient(circle at 82% 40%, #9fd2d6 0 1.2px, transparent 1.9px),
+        /* 水彩のにじみ */
+        radial-gradient(ellipse 45% 30% at 78% 14%, rgba(84,140,130,.32), transparent 70%),
+        radial-gradient(ellipse 48% 34% at 18% 76%, rgba(120,70,110,.28), transparent 70%),
+        radial-gradient(ellipse 38% 24% at 86% 82%, rgba(70,95,70,.26), transparent 70%),
+        /* 継ぎ目（紙を貼り合わせた線） */
+        linear-gradient(to bottom, transparent 0 60.5%, rgba(255,255,255,.12) 60.5% 62%, rgba(0,0,0,.18) 62% 63%, transparent 63% 100%),
+        /* 上段：緑がかった夜空 */
+        linear-gradient(to bottom, #364240 0%, #232b2a 55%, transparent 62%),
+        /* 下段：紫がかった夜空（土台） */
+        linear-gradient(to bottom, #29212c 0%, #1c1620 100%);
+}
+
+
+/* 「23時」の数字 */
+.penguin-scene::before {
+    content: "23";
+    position: absolute;
+    z-index: 20;
+    right: 7%;
+    top: 4%;
+
+    color: rgba(235,238,231,.82);
+    font: 10px/1 Consolas, monospace;
+    letter-spacing: .05em;
+    text-shadow: 0 1px 3px rgba(0,0,0,.8);
+}
+
+
+/* =========================================================
+   ペンギン本体
+   ========================================================= */
+
+.penguin-scene::after {
+    content: "";
+    position: absolute;
+    z-index: 10;
+
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+
+    /* 切り絵のような輪郭（くちばし→頭→背中→左翼→本体→右翼→足） */
+    clip-path: polygon(
+        68% 18%, 62% 14%, 56% 17%, 58% 24%, 50% 28%,
+        33% 34%, 12% 50%, 28% 54%, 32% 66%, 30% 80%,
+        24% 93%, 32% 88%, 38% 96%, 46% 82%, 62% 62%,
+        60% 58%, 76% 78%, 64% 68%, 66% 45%, 62% 30%, 63% 22%
+    );
+
+    background:
+        /* 目 */
+        radial-gradient(circle at 50% 50%, #1b1e1e 0 60%, transparent 65%)
+        61% 19% / 3.5% 3.5% no-repeat,
+
+        /* 白い腹 */
+        radial-gradient(
+            ellipse 27% 35% at 46% 60%,
+            #e3e6dd 0%,
+            #d3d6cd 50%,
+            rgba(170,176,170,.35) 72%,
+            transparent 84%
+        ),
+
+        /* 左翼の陰（コントラスト） */
+        radial-gradient(
+            ellipse 40% 26% at 24% 45%,
+            rgba(30,36,37,.45) 0%,
+            transparent 75%
+        ),
+
+        /* 頭〜背中〜翼〜足の地色（頭側が明るく、尾側が暗い） */
+        linear-gradient(165deg, #8a9394 0%, #626b6d 42%, #454e50 70%, #2f383a 100%);
+
+    filter:
+        drop-shadow(0 3px 4px rgba(0,0,0,.5))
+        drop-shadow(0 0 3px rgba(255,255,255,.1));
+
+    pointer-events: none;
+}
+
+
+/* =========================================================
+   絵画らしい星
+   ========================================================= */
+
+.penguin-scene {
+    box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.08),
+        inset 0 0 18px rgba(0,0,0,.55);
+}
+
+
+/* =========================================================
+   スマホ最優先
+   絵画自体が小さくなるので、ペンギンを少し大きくする
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    .cctv-artwork {
+        right: 5%;
+        top: 12%;
+        width: 30%;
+        height: 58%;
+        border-width: 4px;
+    }
+
+    .penguin-scene {
+        width: 100%;
+        height: 100%;
+    }
+
+    .penguin-scene::before {
+        right: 6%;
+        top: 4%;
+        font-size: 8px;
+    }
+
+    .penguin-scene::after {
+        transform: scale(1.04);
+        transform-origin: center center;
+    }
+}
+
+
+/* =========================================================
+   かなり小さいスマホ
+   ========================================================= */
+
+@media (max-width: 390px) {
+
+    .cctv-artwork {
+        right: 4%;
+        top: 10%;
+        width: 31%;
+        height: 60%;
+        border-width: 3px;
+    }
+
+    .penguin-scene::after {
+        transform: scale(1.08);
+    }
+
+    .penguin-scene::before {
+        font-size: 7px;
+    }
+}
+    .cctv-caption { margin:13px 0 0; max-width:100%; overflow-wrap:anywhere; word-break:break-word; color:#777b75; font:10px Consolas,monospace; line-height:1.7; letter-spacing:.07em; }
+    .investigation-decision { display:grid; grid-template-columns:minmax(0,1fr) minmax(320px,.72fr); gap:18px; margin-top:18px; }
+    .investigation-hints,.culprit-box { padding:20px; border:1px solid var(--line); background:#0b0d0c; }
+    .investigation-hints h2,.culprit-box h2 { margin:0 0 8px; font-size:21px; }
+    .investigation-hints > p,.culprit-box > p { margin:0 0 16px; color:#7e827c; font-size:11px; line-height:1.8; }
+    .culprit-entry { padding:14px; border:1px solid #303330; background:#0e100f; }
+    .culprit-entry label { display:block; margin-bottom:9px; color:#8b8f89; font:9px Consolas,monospace; letter-spacing:.15em; }
+    .culprit-input { width:100%; min-height:54px; padding:0 14px; border:1px solid #474b47; border-radius:0; outline:0; background:#080a09; color:#ecece8; font:18px/1.4 "Yu Mincho","Hiragino Mincho ProN",serif; letter-spacing:.12em; }
+    .culprit-input::placeholder { color:#4f534f; font-size:12px; letter-spacing:.08em; }
+    .culprit-input:focus { border-color:var(--red-bright); box-shadow:inset 3px 0 0 var(--red); }
+    .culprit-input[aria-invalid="true"] { border-color:#a63832; background:#120a09; }
+    .culprit-input:disabled { opacity:.56; }
+    .culprit-entry-note { margin:9px 0 0; color:#666a65; font-size:9px; line-height:1.7; }
+    .culprit-submit { width:100%; min-height:47px; margin-top:11px; border:1px solid var(--red); background:var(--red); color:white; cursor:pointer; font-size:11px; letter-spacing:.1em; }
+    .culprit-feedback { min-height:37px; padding-top:11px; color:#d56e65; font-size:11px; line-height:1.65; }
+    .investigation-body[hidden] { display:none; }
+    .device-screen { position:fixed; z-index:190; inset:0; visibility:hidden; overflow:hidden; background:#17140d; color:#efbd58; opacity:0; pointer-events:none; font-family:"Courier New",Consolas,monospace; transition:opacity .5s ease,visibility 0s linear .5s; }
+    .device-screen::before { content:""; position:absolute; z-index:20; inset:0; pointer-events:none; background:repeating-linear-gradient(0deg,rgba(255,221,132,.018) 0 1px,rgba(0,0,0,.16) 2px 4px),radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.76) 100%); mix-blend-mode:screen; }
+    .device-screen::after { content:""; position:absolute; z-index:19; inset:15px; pointer-events:none; border:2px solid rgba(224,72,41,0); box-shadow:inset 0 0 0 5px rgba(224,72,41,0),inset 0 0 90px rgba(0,0,0,.72); opacity:.78; transition:opacity .28s ease,border-color .28s ease,box-shadow .28s ease; }
+    .device-screen.open { visibility:visible; opacity:1; pointer-events:auto; transition-delay:0s; }
+    .device-boot { position:absolute; z-index:4; inset:0; display:grid; place-items:center; padding:clamp(24px,5vw,72px); background:radial-gradient(ellipse at center,#171006 0,#070604 72%); opacity:0; visibility:hidden; transition:opacity .45s ease,visibility 0s linear .45s; }
+    .device-screen.booting .device-boot { opacity:1; visibility:visible; transition-delay:0s; }
+    .device-screen.ready .device-boot { opacity:0; visibility:hidden; }
+    .boot-console { width:min(790px,100%); padding:clamp(20px,4vw,45px); border:3px double #735b2b; background:#070603; color:#aa8037; box-shadow:0 0 0 12px #2b271a,0 0 0 14px #4c4228,inset 0 0 65px rgba(142,85,14,.12),0 32px 80px rgba(0,0,0,.72); }
+    .boot-mark { display:inline-grid; width:80px; height:64px; place-items:center; margin-bottom:25px; border:2px solid #8f6c2d; background:#171106; color:#ffc55f; text-shadow:0 0 8px rgba(255,178,50,.45); font:bold 25px/1 "Courier New",monospace; }
+    .boot-title { margin:0 0 7px; color:#ffd16e; text-shadow:0 0 7px rgba(255,184,58,.36); font-size:clamp(18px,2.5vw,31px); font-weight:700; letter-spacing:.08em; }
+    .boot-version { margin:0 0 28px; color:#7f612d; font-size:10px; letter-spacing:.13em; }
+    .boot-line { margin:0 0 9px; color:#b98c3d; font-size:clamp(10px,1.1vw,13px); opacity:0; }
+    .device-screen.booting .boot-line { animation:bootLine .25s ease forwards; }
+    .device-screen.booting .boot-line:nth-of-type(2) { animation-delay:.35s; }.device-screen.booting .boot-line:nth-of-type(3) { animation-delay:.85s; }.device-screen.booting .boot-line:nth-of-type(4) { animation-delay:1.35s; }.device-screen.booting .boot-line:nth-of-type(5) { animation-delay:1.85s; }
+    .boot-progress { height:5px; margin-top:25px; overflow:hidden; border:1px solid #4f3c1d; background:#110d06; }
+    .boot-progress i { display:block; width:100%; height:100%; background:repeating-linear-gradient(90deg,#d89525 0 13px,#2b1e0b 13px 17px); transform:scaleX(0); transform-origin:left; }
+    .device-screen.booting .boot-progress i { animation:bootProgress 2.65s cubic-bezier(.25,.72,.25,1) forwards; }
+    .device-shell { position:absolute; z-index:2; inset:clamp(9px,1.5vw,22px); display:grid; grid-template-rows:44px minmax(0,1fr) 30px; border:10px solid #312c1d; outline:2px solid #554a2c; background:#090703; box-shadow:inset 0 0 0 2px #0c0a05,0 22px 70px rgba(0,0,0,.85); opacity:0; visibility:hidden; transform:translateY(5px); transition:opacity .4s ease,transform .4s ease,visibility 0s linear .4s; }
+    .device-screen.ready .device-shell { opacity:1; visibility:visible; transform:none; transition-delay:0s; }
+    .device-titlebar,.device-statusbar { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:0 14px; background:#211d12; color:#a87c32; font-size:9px; letter-spacing:.09em; text-transform:uppercase; }
+    .device-titlebar { border-bottom:2px solid #5f4b25; }
+    .device-titlebar b { color:#e8b34d; font-weight:700; }
+    .device-window-controls { display:flex; gap:15px; color:#d29b31; font-size:9px; text-shadow:0 0 7px currentColor; }
+    .device-statusbar { border-top:2px solid #4f3e20; background:#17130b; color:#765925; }
+    .device-terminal { position:relative; min-height:0; overflow:hidden; background:radial-gradient(ellipse at 50% 45%,rgba(91,58,10,.13),transparent 64%),#030301; box-shadow:inset 0 0 90px rgba(0,0,0,.82),inset 0 0 22px rgba(195,119,17,.08); }
+    .device-terminal::before { content:""; position:absolute; z-index:2; left:50%; top:50%; width:26vmin; height:26vmin; pointer-events:none; border:1px solid rgba(224,72,41,.38); border-radius:50%; opacity:0; transform:translate(-50%,-50%) scale(.35); }
+    .device-terminal::after { content:""; position:absolute; z-index:3; left:0; right:0; top:-2px; height:2px; pointer-events:none; background:rgba(255,194,82,.11); box-shadow:0 0 10px rgba(255,171,42,.12); animation:terminalSweep 8.4s linear infinite; }
+    .terminal-output { position:absolute; inset:0; overflow-y:auto; padding:clamp(18px,2.5vw,34px); padding-bottom:88px; scrollbar-color:#72521f #090703; }
+    .terminal-line { margin:0 0 5px; color:#d9a546; text-shadow:0 0 5px rgba(236,163,43,.23); font-size:clamp(10px,1vw,13px); line-height:1.45; white-space:pre-wrap; }
+    .terminal-line.command { color:#ffd26c; }
+    .terminal-line.command::before { content:"PS C:\\SPECTRA\\UNIT19> "; color:#f2b745; }
+    .terminal-line.stream { margin-bottom:3px; color:#c78e32; font-size:clamp(9px,.92vw,12px); line-height:1.35; }
+    .terminal-line.warning { color:#ef6c45; text-shadow:0 0 7px rgba(237,70,38,.25); }
+    .terminal-line.success { color:#c8d36b; }
+    .terminal-line.dim { color:#765722; text-shadow:none; }
+    .terminal-cursor { display:inline-block; width:9px; height:15px; margin-left:4px; vertical-align:-2px; background:#ffc557; box-shadow:0 0 8px rgba(255,190,76,.55); animation:terminalCursor 1s steps(2) infinite; }
+    .device-command { position:absolute; z-index:5; right:clamp(18px,2.5vw,34px); bottom:clamp(15px,2vw,24px); }
+    .device-activate { height:42px; padding:0 19px; border:1px solid #9d6c25; background:#2e210d; color:#f7c45f; cursor:pointer; font:bold 10px "Courier New",monospace; letter-spacing:.1em; box-shadow:inset 0 0 0 2px #130e06; }
+    .device-activate:hover,.device-activate:focus-visible { background:#4a3210; color:#ffe09b; }
+    .device-activate:disabled { opacity:.45; cursor:wait; }
+    .device-screen.running .device-command,.device-screen.complete .device-command { display:none; }
+    .device-screen.running .terminal-output { padding-bottom:clamp(18px,2.5vw,34px); }
+    .device-screen.complete .terminal-output { padding-bottom:92px; }
+    .device-screen.running .device-terminal { background:radial-gradient(ellipse at 50% 45%,rgba(127,73,9,.2),transparent 62%),#030301; }
+    .device-screen.executing::after { border-color:rgba(226,68,35,.72); box-shadow:inset 0 0 0 5px rgba(226,68,35,.08),inset 0 0 110px rgba(0,0,0,.82); opacity:1; animation:warningFrame .58s ease-in-out infinite alternate; }
+    .device-screen.executing .device-titlebar { border-color:#853821; background:#2b120a; color:#c26a42; }
+    .device-screen.executing .device-titlebar b { color:#ffae68; }
+    .device-screen.executing .device-statusbar { border-color:#71311f; background:#180b07; color:#a65537; }
+    .device-screen.executing .device-terminal::before { opacity:.56; animation:coreWave 1s cubic-bezier(.2,.7,.3,1) infinite; }
+    .device-screen.transferring .device-terminal::before { opacity:.8; animation-duration:.42s; }
+    .device-screen.transferring .device-terminal::after { height:2px; background:rgba(255,73,73,.42); animation-duration:.62s; }
+    .device-screen.finalizing .device-titlebar { border-color:#5c6530; background:#18200d; color:#9fa951; }
+    .device-screen.finalizing .device-titlebar b { color:#c7d56b; }
+    .device-screen.finalizing .device-statusbar { border-color:#4b5529; background:#101508; color:#778240; }
+    .device-screen.finalizing .device-terminal::after { background:rgba(179,207,90,.22); animation-duration:3.8s; }
+    .device-continue { position:absolute; z-index:6; right:clamp(18px,2.5vw,34px); bottom:clamp(15px,2vw,24px); min-width:220px; height:46px; border:1px solid #a97a2e; background:#3a290f; color:#ffd578; cursor:pointer; font:bold 10px "Courier New",monospace; letter-spacing:.1em; box-shadow:inset 0 0 0 2px #130e06,0 0 22px rgba(227,155,42,.1); opacity:0; visibility:hidden; pointer-events:none; transform:translateY(7px); transition:opacity .35s ease,transform .35s ease,background .2s ease; }
+    .device-screen.complete .device-continue { opacity:1; visibility:visible; pointer-events:auto; transform:none; }
+    .device-continue:hover,.device-continue:focus-visible { background:#5a3d12; color:#fff0bd; }
+    .device-continue:disabled { opacity:.45; cursor:wait; }
+    .device-transition-mask { position:absolute; z-index:30; inset:0; visibility:hidden; background:#000; opacity:0; pointer-events:none; transition:opacity .62s ease,visibility 0s linear .62s; }
+    .device-screen.leaving .device-transition-mask { visibility:visible; opacity:1; transition-delay:0s; }
+    .device-screen.leaving .device-continue { opacity:0; pointer-events:none; }
+    .device-terminal { display:grid; grid-template-rows:auto minmax(0,1fr); }
+    .device-command { position:relative; right:auto; bottom:auto; z-index:5; display:block; padding:clamp(22px,4vw,44px); border-bottom:1px solid #5f4b25; background:#090703; }
+    .device-command label { display:block; margin-bottom:14px; color:#efbd58; font-size:clamp(13px,1.5vw,17px); line-height:1.8; letter-spacing:.06em; }
+    .device-input-row { display:grid; grid-template-columns:minmax(0,1fr) 150px; width:min(720px,100%); }
+    .device-input-row input { min-width:0; height:50px; padding:0 15px; border:1px solid #725525; border-right:0; border-radius:0; outline:0; background:#030301; color:#ffd06b; font:18px "Yu Gothic",sans-serif; letter-spacing:.12em; }
+    .device-input-row input:focus { border-color:#d79b35; box-shadow:inset 3px 0 0 #d79b35; }
+    .device-input-row input[aria-invalid="true"] { border-color:#cf5c3a; background:#120704; }
+    .device-input-row .device-activate { width:100%; height:50px; }
+    .device-input-feedback { min-height:24px; margin:10px 0 0; color:#ef6c45; font-size:11px; line-height:1.7; }
+    .terminal-output { position:relative; inset:auto; min-height:0; padding:clamp(24px,4vw,52px); overflow-y:auto; }
+    .device-screen.running .terminal-output,.device-screen.complete .terminal-output { grid-row:1/-1; padding:clamp(28px,5vw,70px); padding-bottom:90px; }
+    .device-screen.running .terminal-line,.device-screen.complete .terminal-line { margin-bottom:14px; color:#efbd58; font-size:clamp(14px,2vw,24px); line-height:1.65; letter-spacing:.04em; }
+    .device-screen.running .terminal-line.count { color:#ffcf66; font-size:clamp(22px,4vw,48px); }
+    .device-screen.complete .terminal-line.success { color:#c8d36b; }
+    .epilogue-screen { position:fixed; z-index:210; inset:0; visibility:hidden; overflow:hidden; background:linear-gradient(rgba(4,5,5,.46),rgba(4,5,5,.92)),repeating-linear-gradient(90deg,#111414 0 5%,#070909 5% 9%); opacity:0; pointer-events:none; transition:opacity .75s ease,visibility 0s linear .75s; }
+    .epilogue-screen::before { content:""; position:absolute; inset:0; background:linear-gradient(transparent 63%,#030404 63%),linear-gradient(90deg,transparent 0 9%,rgba(255,255,255,.025) 9% 10%,transparent 10% 100%); background-size:100% 100%,110px 100%; }
+    .epilogue-screen.open { visibility:visible; opacity:1; pointer-events:auto; transition-delay:0s; }
+    .epilogue-top { position:absolute; z-index:2; top:clamp(20px,4vw,48px); left:clamp(20px,4vw,56px); color:#686c66; font:9px Consolas,monospace; letter-spacing:.18em; }
+    .epilogue-dialogue { position:absolute; z-index:3; left:50%; bottom:clamp(24px,6vh,70px); transform:translateX(-50%); width:min(1000px,calc(100% - 32px)); padding:clamp(22px,4vw,38px); border:1px solid rgba(232,231,225,.22); border-left:4px solid var(--red); background:rgba(7,8,8,.96); transition:opacity .5s ease,transform .5s ease; }
+    .epilogue-dialogue.hidden { opacity:0; transform:translate(-50%,20px); pointer-events:none; }
+    .epilogue-label { display:flex; justify-content:space-between; margin-bottom:18px; color:#6f736d; font:9px Consolas,monospace; letter-spacing:.14em; }
+    .epilogue-text { min-height:60px; margin:0; color:#e1e0da; font-size:clamp(14px,1.5vw,18px); line-height:2; }
+    .epilogue-next { display:block; min-width:150px; min-height:42px; margin:20px 0 0 auto; border:1px solid rgba(237,58,49,.52); background:transparent; color:#cdd0c8; cursor:pointer; font:9px Consolas,monospace; letter-spacing:.13em; }
+    .epilogue-result { position:absolute; z-index:4; inset:0; display:grid; place-items:center; padding:24px; text-align:center; opacity:0; transform:scale(.96); pointer-events:none; transition:opacity .9s ease,transform 1s var(--ease); }
+    .epilogue-result.visible { opacity:1; transform:scale(1); pointer-events:auto; }
+    .epilogue-result small { display:block; margin-bottom:22px; color:#777b75; font:9px Consolas,monospace; letter-spacing:.22em; }
+    .epilogue-title { margin:0; font-size:clamp(45px,9vw,126px); line-height:.95; letter-spacing:-.06em; }
+    .epilogue-title .ending-kind { white-space:nowrap; }
+    .epilogue-title.uncertain { color:transparent; -webkit-text-stroke:1px rgba(232,231,225,.68); }
+    .epilogue-title.bad { color:var(--red-bright); text-shadow:0 0 34px rgba(189,41,41,.28); }
+    .epilogue-title.true { color:#eeede7; text-shadow:0 0 32px rgba(255,255,255,.08); }
+    .epilogue-return { display:inline-flex; min-height:48px; align-items:center; margin-top:40px; padding:0 22px; border:1px solid var(--line); color:#b8bbb4; text-decoration:none; font-size:11px; letter-spacing:.1em; }
+    .epilogue-return[hidden] { display:none; }
+    .segment-complete-copy { max-width:680px; margin:30px auto 0; color:#8e928c; font-size:clamp(13px,1.5vw,17px); line-height:2; letter-spacing:.06em; }
+    .difficulty-gate { position:fixed; z-index:400; inset:0; display:grid; place-items:center; padding:24px; background:radial-gradient(circle at 20% 20%,rgba(189,41,41,.18),transparent 34%),#070808; transition:opacity .42s ease,visibility .42s ease; }
+    .difficulty-gate.closed { opacity:0; visibility:hidden; pointer-events:none; }
+    .difficulty-gate-card { width:min(720px,100%); border:1px solid rgba(232,231,225,.18); background:#0b0d0c; box-shadow:18px 18px 0 rgba(189,41,41,.08); }
+    .difficulty-gate-head { display:flex; justify-content:space-between; padding:16px 19px; border-bottom:1px solid var(--line); color:#777b75; font:9px Consolas,monospace; letter-spacing:.16em; }
+    .difficulty-gate-head b { color:var(--red-bright); font-weight:400; }
+    .difficulty-gate-body { padding:clamp(30px,6vw,62px); }
+    .difficulty-gate-body h1 { margin:0; font-size:clamp(28px,4vw,48px); letter-spacing:-.04em; }
+    .difficulty-gate-body p { margin:16px 0 28px; color:#959993; font-size:13px; line-height:1.9; }
+    .difficulty-gate-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .difficulty-gate-option { min-height:92px; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:8px; padding:18px 20px; border:1px solid #343734; background:#080909; color:#dddcd6; cursor:pointer; text-align:left; }
+    .difficulty-gate-option:hover,.difficulty-gate-option:focus-visible { border-color:var(--red-bright); background:rgba(189,41,41,.14); }
+    .difficulty-gate-option b { font-size:20px; }
+    .difficulty-gate-option span { color:#777b75; font:9px Consolas,monospace; letter-spacing:.14em; }
+    .final-mission-flow { width:min(980px,100%); margin:0 auto; }
+    .chinen-video-intro { margin:0 0 22px; padding:18px 20px; border-left:4px solid var(--red-bright); background:rgba(189,41,41,.1); color:#f0efe9; font-size:clamp(16px,2vw,23px); line-height:1.8; }
+    .next-room-directive { margin-top:22px; padding:24px; border:1px solid rgba(237,58,49,.48); background:#0b0d0c; color:#fff; font-size:clamp(17px,2vw,25px); font-weight:700; line-height:1.8; text-align:center; }
+    .gallery-button[hidden] { display:none !important; }
+    @keyframes hintIn { from{opacity:0;transform:translateY(-5px)} to{opacity:1;transform:translateY(0)} }
+
+    @keyframes timerBlink { 50% { opacity: .35; } }
+    @keyframes pulseBorder { 50% { border-color: var(--red-bright); box-shadow: 0 0 0 4px rgba(189,41,41,.13); } }
+    @keyframes sceneStripeCover { from { transform: translateX(-70%) skewX(-7deg); } to { transform: translateX(630%) skewX(-7deg); } }
+    @keyframes sceneStripeRelease { from { transform: translateX(-70%) skewX(-7deg); } to { transform: translateX(630%) skewX(-7deg); } }
+    @keyframes cctvScan { from{top:-2px} to{top:100%} }
+    @keyframes cctvDrift { from{transform:translateX(-4px)} to{transform:translateX(5px)} }
+    @keyframes terminalCursor { 50%{opacity:0} }
+    @keyframes terminalSweep { from{transform:translateY(0)} to{transform:translateY(78vh)} }
+    @keyframes bootLine { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:none} }
+    @keyframes bootProgress { from{transform:scaleX(0)} to{transform:scaleX(1)} }
+    @keyframes warningFrame { from{opacity:.42} to{opacity:1} }
+    @keyframes coreWave { 0%{opacity:.72;transform:translate(-50%,-50%) scale(.28)} 100%{opacity:0;transform:translate(-50%,-50%) scale(2.7)} }
+    @keyframes missionTitleDock {
+      0% { opacity:0; transform:translateY(var(--mission-intro-shift)) scale(var(--mission-intro-scale)); border-color:transparent; }
+      9%,42% { opacity:1; transform:translateY(var(--mission-intro-shift)) scale(var(--mission-intro-scale)); border-color:transparent; }
+      100% { opacity:1; transform:translateY(0) scale(1); border-color:rgba(237,58,49,.4); }
+    }
+    @keyframes missionContentReveal { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+
+    @media (max-width: 900px) {
+      .app { grid-template-rows: 66px 1fr; }
+      .topbar { padding: 0 16px; gap: 10px; }
+      .brand { min-width: 0; font-size: 12px; }
+      .classification { display: none; }
+      .timer { margin-left: auto; padding-left: 11px; }
+      .timer-label { display: none; }
+      .timer-value { min-width: 54px; font-size: 15px; }
+      .top-actions { margin-left: 0; }
+      .difficulty-badge { width:38px; padding:0; justify-content:center; font-size:0; }
+      .difficulty-badge::after { content:"難"; font-size:11px; }
+      body.easy .difficulty-badge::after { content:"易"; }
+      .gallery-button { top:78px; right:10px; min-width:124px; height:46px; padding:0 13px; font-size:11px; }
+      .gallery-button::after { font-size:6px; }
+      .gallery-drawer { grid-template-rows:66px minmax(0,1fr) auto; width:100vw; max-width:100vw; height:100dvh; min-height:0; right:0; top:0; overflow:hidden; transform: translate3d(102%, 0, 0); -webkit-transform:translate3d(102%,0,0); }
+      .gallery-memory-nav { grid-template-columns:44px minmax(0,1fr) 44px; gap:7px; padding:10px 12px; }
+      .gallery-memory-arrow { min-width:0; width:44px; font-size:0; }
+      .gallery-memory-arrow:first-child::after { content:"←"; font-size:16px; }
+      .gallery-memory-arrow:last-child::after { content:"→"; font-size:16px; }
+      .gallery-memory-tabs { gap:5px; }
+      .gallery-memory-tab { width:min(40px,10vw); height:38px; }
+      .gallery-memory-slide { grid-template-columns:minmax(0,1fr); align-content:start; }
+      .gallery-memory-art { min-height:270px; padding:14px; border-right:0; border-bottom:1px solid var(--line); }
+      .gallery-memory-image img { max-height:38vh; }
+      .gallery-memory-info { padding:22px 18px 30px; }
+      .gallery-memory-code { font-size:9px; }
+      .gallery-memory-info h3 { font-size:28px; }
+      .gallery-memory-info > p { font-size:14px; }
+      .gallery-memory-schedule .schedule-row { grid-template-columns:104px minmax(0,1fr); }
+      .gallery-exit { margin:0 12px 12px; }
+      .document-grid, .map-layout, .evidence-layout, .final-layout { grid-template-columns: 1fr; }
+      .investigation-layout, .investigation-decision { grid-template-columns:minmax(0,1fr); }
+      .briefing-grid { grid-template-columns:1fr; }
+      .painting-slide { grid-template-columns:1fr; }
+      .artwork-column { border-right:0; border-bottom:1px solid var(--line); }
+      .chimen-block { grid-template-columns: 120px minmax(0, 1fr); }
+      .partner-portrait { height: 160px; }
+      .partner-portrait::before { width: 61px; height: 70px; left: 28px; top: 24px; }
+      .partner-portrait::after { width: 92px; left: 13px; }
+      .chapter-index,.intel-note .label,.speaker-label,.puzzle-code,.hint-card b,.password-clue strong,.novel-status,.culprit-entry label { font-size:11px; }
+      .intro-copy,.story-copy p,.intel-note p,.problem-text,.hint-card,.password-clue p,.office-gate-body > p,.evidence-lead,.transcript-body p,.investigation-hints > p,.culprit-box > p,.gallery-intro { color:#b2b5af; font-size:14px; }
+      .document-card figcaption,.map-card figcaption,.mission-visual figcaption,.dossier-head,.artwork-frame figcaption,.office-gate-head,.evidence-panel-head { color:#9da19b; font-size:10px; }
+      .suspect b { font-size:13px; }.suspect span { color:#959992; font-size:10px; }
+      .flow-note { color:#b5b8b2; font-size:13px; }.flow-step h3 { font-size:15px; }.flow-step p { color:#aeb1ab; font-size:13px; }.flow-time { color:#a0a49d; font-size:11px; }
+      .route-list li { font-size:13px; }.route-list b { font-size:11px; }
+      .partner-id,.partner-status,.mission-placeholder .placeholder-title,.camera-ui,.fate,.nav-current,.lightbox-title,.zoom-readout { color:#a1a59e; font-size:10px; }
+      .speech p { font-size:15px; line-height:2; }
+      .painting-dot { width:40px; height:36px; font-size:12px; }
+      .answer-note label,.password-form label { color:#aeb1ab; font-size:11px; }
+      .answer-note input,.password-row input,.culprit-input { font-size:16px; }
+      .hint-reveal,.office-jump,.password-row button,.culprit-submit { font-size:12px; }
+      .schedule-row span { color:#b0b3ad; font-size:13px; }.schedule-row span:first-child { color:#969a94; }
+      .novel-text { font-size:15px; }.novel-counter,.novel-back,.novel-advance { font-size:11px; }
+      .transcript-name span,.cctv-caption,.culprit-entry-note { color:#999d96; font-size:11px; }
+      .culprit-feedback,.password-feedback { font-size:13px; }
+      .terminal-line { font-size:13px; }.device-titlebar,.device-statusbar { font-size:10px; }.device-activate { font-size:12px; }
+      .epilogue-top,.epilogue-label,.epilogue-result small,.epilogue-next { color:#9da19b; font-size:10px; }
+    }
+
+    @media (max-width: 600px) {
+      .chapter { padding: 28px 18px 38px; }
+      .hint-terminal-grid { grid-template-columns:1fr; }
+      .puzzle-deck-nav { grid-template-columns:44px minmax(0,1fr) 44px; gap:7px; padding:10px; }
+      .puzzle-deck-arrow { width:44px; min-width:0; font-size:0; }
+      .puzzle-deck-arrow:first-child::after { content:"←"; font-size:16px; }
+      .puzzle-deck-arrow:last-child::after { content:"→"; font-size:16px; }
+      .puzzle-deck-tabs { gap:5px; }
+      .puzzle-deck-tab { width:min(44px,11vw); height:40px; }
+      .puzzle-slide-media { padding:12px; }
+      .puzzle-slide-body { padding:22px 16px 28px; }
+      .office-answer-review { grid-template-columns:1fr; }
+      .chapter-head { align-items: start; margin-bottom: 25px; }
+      .chapter-meta { display: none; }
+      h1 { font-size: 29px; }
+      .document-grid { gap: 14px; }
+      .document-card .zoom-trigger img { height: auto; max-height: 65vh; }
+      .chimen-block { grid-template-columns: 1fr; }
+      .partner-card { display: grid; grid-template-columns: 80px 1fr; gap: 13px; align-items: center; }
+      .partner-portrait { height: 90px; }
+      .partner-portrait::before { width: 38px; height: 43px; left: 19px; top: 14px; }
+      .partner-portrait::after { width: 62px; height: 47px; left: 7px; bottom: -14px; }
+      .partner-status { display: block; margin: 0; }
+      .partner-status b { display: block; margin-top: 7px; }
+      .speech::before { display: none; }
+      .placeholder-grid { gap: 6px; }
+      .placeholder-art { font-size: 19px; }
+      .camera, .camera canvas { min-height: 260px; }
+      .map-blueprint { min-height:310px; }
+      .novel-scene { padding:14px; }
+      .novel-character { left:2%; width:250px; height:76%; opacity:.6; }
+      .novel-signal { display:none; }
+      .novel-dialogue-inner { min-height:205px; grid-template-columns:1fr auto; padding:20px; }
+      .novel-text { font-size:13px; line-height:1.85; }
+      .cctv-frame { min-height:300px; }
+      .chapter[data-chapter="4"] .evidence-panel-body { padding:16px 14px; }
+      .chapter[data-chapter="4"] .evidence-panel-head,
+      .chapter[data-chapter="4"] .transcript-name { flex-wrap:wrap; row-gap:7px; }
+      .chapter[data-chapter="4"] .evidence-panel-head > span,
+      .chapter[data-chapter="4"] .transcript-name > * { min-width:0; max-width:100%; overflow-wrap:anywhere; }
+      .device-titlebar span:nth-child(2),.device-statusbar span:nth-child(2) { display:none; }
+      .novel-choices { grid-template-columns:1fr; }
+      .novel-back,.novel-advance { min-width:120px; }
+      .device-input-row { grid-template-columns:1fr; gap:9px; }
+      .device-input-row input { border-right:1px solid #725525; }
+      .password-clue { grid-template-columns:1fr; gap:8px; }
+      .suspect-strip { grid-template-columns:1fr; }
+      .flow-step { grid-template-columns:44px 1fr; }.flow-time { grid-column:2; }
+      .bottom-nav { padding: 0 14px; }
+      .back-button span, .next-button span { display: none; }
+      .next-button { min-width: 46px; justify-content: center; padding: 0; }
+      .lightbox { grid-template-rows: 54px 1fr 58px; }
+      .lightbox-stage { padding: 15px; }
+      .epilogue-title .ending-kind { display:block; margin-top:.08em; }
+      .mission-briefing { --mission-intro-scale:1.08; --mission-intro-shift:30vh; align-content:start; padding:30px 20px; }
+      .mission-briefing-head { display:block; }
+      .mission-briefing-head b { display:block; white-space:nowrap; font-size:clamp(39px,13.5vw,62px); }
+      .mission-briefing-head span { position:static; display:block; padding-top:16px; }
+      .mission-briefing h2 { margin-top:28px; font-size:27px; }
+      .mission-rule-title { margin-top:25px; }
+      .mission-confirm { margin-top:25px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+      .mission-briefing-head,.mission-briefing-head span,.mission-briefing h2,.mission-briefing-summary,.mission-rule-title,.mission-rules li,.mission-confirm { animation-delay:0s !important; opacity:1 !important; transform:none !important; }
+    }
+  </style>
+</head>
+<body>
+  <section class="difficulty-gate" id="difficulty-gate" role="dialog" aria-modal="true" aria-labelledby="difficulty-gate-title">
+    <div class="difficulty-gate-card">
+      <header class="difficulty-gate-head"><span><b>●</b> VIDEO ROUTE SELECT</span><span>REQUIRED</span></header>
+      <div class="difficulty-gate-body">
+        <h1 id="difficulty-gate-title">現在遊んでいる難易度を選択</h1>
+        <p>選択した難易度に対応する監視カメラ映像へ分岐します。</p>
+        <div class="difficulty-gate-options">
+          <button class="difficulty-gate-option" type="button" data-current-difficulty="easy"><b>かんたん</b><span>EASY VIDEO</span></button>
+          <button class="difficulty-gate-option" type="button" data-current-difficulty="hard"><b>難しい</b><span>HARD VIDEO</span></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="app" aria-hidden="true" inert>
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true"></span><a href="index.html" style="color: inherit; text-decoration: none;">SPECTRA</a></div>
+      <div class="classification">CODE:2A / <b>TOP SECRET</b></div>
+      <div class="top-actions"><span class="difficulty-badge" aria-label="難易度 難しい">難しい / HARD</span></div>
+    </header>
+    <button class="gallery-button" id="gallery-button" type="button" disabled hidden aria-controls="gallery-drawer" aria-expanded="false" aria-label="未使用"></button>
+
+    <div class="workspace">
+      <div class="content-stack">
+        <main class="chapter-viewport" id="chapter-viewport">
+          <div class="chapter-track" id="chapter-track">
+            <section class="chapter active" data-chapter="0" aria-labelledby="chapter-title-0">
+              <div class="chapter-inner">
+                <header class="chapter-head">
+                  <div><div class="chapter-index">① / MISSION BRIEFING</div><h1 id="chapter-title-0">任務説明</h1></div>
+                  <div class="chapter-meta">FILE 001<br>CLASSIFIED / A</div>
+                </header>
+                <p class="intro-copy">ストーリーシートで任務の背景と登場人物を確認してください。資料はクリックすると拡大できます。</p>
+                <div class="briefing-grid">
+                  <figure class="source-sheet story-sheet">
+                    <figcaption class="dossier-head"><span>FILE 001 / STORY SHEET</span><span>TOP SECRET</span></figcaption>
+                    <button class="zoom-trigger" type="button" data-image="assets/story-sheet.png" data-title="CODE:2A ストーリーシート"><img src="assets/story-sheet.png" alt="槐美術館の設定、スペクトラ、相棒の知念誠也、3人の容疑者、消失装置を説明したCODE:2Aストーリーシート"><span class="zoom-hint">＋ 拡大</span></button>
+                  </figure>
+                </div>
+              </div>
+            </section>
+
+            <section class="chapter" data-chapter="1" aria-labelledby="chapter-title-1" aria-hidden="true">
+              <div class="chapter-inner">
+                <header class="chapter-head">
+                  <div><div class="chapter-index">② / AREA MAP</div><h1 id="chapter-title-1">館内マップ</h1></div>
+                  <div class="chapter-meta">CURRENT AREA<br>ENTRANCE</div>
+                </header>
+                <div class="map-layout">
+                  <figure class="map-card">
+                    <figcaption><span>槐美術館 / 更新マップ</span><span>FLOOR 01</span></figcaption>
+                    <div class="map-blueprint" aria-label="絵画展示エリア、事務室、絵画Dを通る仕切り、消失装置の位置を示す館内マップ">
+                      <span class="floor-outline"></span><span class="office-room"></span><span class="map-divider"></span>
+                      <span class="map-label exhibition">絵画展示エリア</span><span class="map-label office">事務室</span><span class="map-label entrance">入口</span><span class="map-label exit">出口</span><span class="map-label spy">スパイの控え室</span>
+                      <span class="map-device">消失装置</span>
+                      <span class="map-point a">A</span><span class="map-point b">B</span><span class="map-point c">C</span><span class="map-point d">D</span>
+                      <span class="map-route r1"></span><span class="map-route r2"></span><span class="map-route r3"></span>
+                    </div>
+                    <button class="map-expand" id="map-expand" type="button" aria-expanded="false">全画面表示</button>
+                    <div class="map-zoom-tools" aria-label="マップの拡大縮小"><button class="tool-button" id="map-zoom-out" type="button" aria-label="マップを縮小">−</button><span class="zoom-readout" id="map-zoom-readout">100%</span><button class="tool-button" id="map-zoom-in" type="button" aria-label="マップを拡大">＋</button><button class="tool-button" id="map-zoom-reset" type="button">RESET</button></div>
+                  </figure>
+                  <aside class="intel-note">
+                    <div class="label">ROUTE INTEL</div>
+                    <h2>侵入経路</h2>
+                    <p>入口は右上、出口は右下です。絵画展示エリア、事務室、消失装置の位置を確認してください。</p>
+                    <ol class="route-list"><li><b>01</b> 入口</li><li><b>02</b> 絵画展示エリア</li><li><b>03</b> 事務室</li><li><b>04</b> 消失装置・出口</li></ol>
+                    <button class="source-reference" type="button" data-image="assets/museum-map-reference.png" data-title="槐美術館 館内マップ原図"><span>提供資料の原図を確認</span><span>＋</span></button>
+                  </aside>
+                </div>
+              </div>
+            </section>
+
+            <section class="chapter" data-chapter="2" aria-labelledby="chapter-title-2" aria-hidden="true">
+              <div class="chapter-inner">
+                <header class="chapter-head">
+                  <div><div class="chapter-index">③ / FIRST MISSION</div><h1 id="chapter-title-2">絵画の謎を解け</h1></div>
+                  <div class="chapter-meta">PAINTING A—D<br>SWIPE LEFT / RIGHT</div>
+                </header>
+                <p class="intro-copy">左右のボタン、タブ、または横フリックで絵画を切り替えられます。A・B・Cの答えは、各問題のメモ欄に記録できます。</p>
+
+                <section class="puzzle-deck" aria-label="FIRST MISSION 絵画一覧">
+                  <nav class="puzzle-deck-nav" aria-label="絵画を切り替える">
+                    <button class="puzzle-deck-arrow" id="puzzle-prev" type="button">← 前の絵画</button>
+                    <div class="puzzle-deck-tabs" role="tablist" aria-label="絵画番号">
+                      <button class="puzzle-deck-tab active" type="button" role="tab" aria-selected="true" data-puzzle-index="0">A</button>
+                      <button class="puzzle-deck-tab" type="button" role="tab" aria-selected="false" data-puzzle-index="1">B</button>
+                      <button class="puzzle-deck-tab" type="button" role="tab" aria-selected="false" data-puzzle-index="2">C</button>
+                      <button class="puzzle-deck-tab" type="button" role="tab" aria-selected="false" data-puzzle-index="3">D</button>
+                    </div>
+                    <button class="puzzle-deck-arrow" id="puzzle-next" type="button">次の絵画 →</button>
+                  </nav>
+
+                  <div class="puzzle-deck-viewport" id="puzzle-viewport">
+                    <div class="puzzle-deck-track" id="puzzle-track">
+                      <article class="puzzle-slide active" data-puzzle-slide="0">
+                        <div class="puzzle-slide-media"><figure class="puzzle-artwork"><figcaption>PAINTING A / 海浜幕張駅</figcaption><button class="zoom-trigger" type="button" data-image="assets/painting-a.jpg" data-title="絵画 A — 海浜幕張駅"><img src="assets/painting-a.jpg" alt="夜の海浜幕張駅ホームを描いた絵画"><span class="zoom-hint">＋ 拡大</span></button></figure></div>
+                        <div class="puzzle-slide-body">
+                          <div class="puzzle-code">PUZZLE A / 2 CHARACTERS</div><h2>問題 A</h2>
+                          <p class="problem-text">海浜幕張駅で「か」を1駅進めると「け」になる時、<br>「り」を1駅戻し、「い」を1駅進めて順に読め</p>
+                          <div class="answer-note"><label for="answer-a">解答メモ／2文字</label><input id="answer-a" data-answer-key="a" type="text" maxlength="2" autocomplete="off" placeholder="□□"></div>
+                          <div class="hint-stack"><button class="hint-reveal" type="button"><span>ヒントを1つ開く</span><span>＋</span></button><div class="hint-card" hidden><b>HINT 01</b>海浜幕張駅から1駅進むと検見川浜駅、1駅戻ると幕張豊砂駅になる。3つの駅名をひらがなにして対応させよう。</div><div class="hint-card" hidden><b>HINT 02</b>「かいひんまくはり」の「か」が1駅進むと「けみがわはま」の「け」になる。同じ位置の文字を使って「り」と「い」も動かそう。</div></div>
+                        </div>
+                      </article>
+
+                      <article class="puzzle-slide" data-puzzle-slide="1" aria-hidden="true">
+                        <div class="puzzle-slide-media"><figure class="puzzle-artwork"><figcaption>PAINTING B / 繁華街の鶏</figcaption><button class="zoom-trigger" type="button" data-image="assets/painting-b.jpg" data-title="絵画 B — 繁華街の鶏"><img src="assets/painting-b.jpg" alt="夜の繁華街に立つ鶏を描いた絵画"><span class="zoom-hint">＋ 拡大</span></button></figure></div>
+                        <div class="puzzle-slide-body">
+                          <div class="puzzle-code">PUZZLE B / 4 CHARACTERS</div><h2>問題 B</h2>
+                          <p class="problem-text">にわなはんかそにわう</p>
+                          <div class="answer-note"><label for="answer-b">解答メモ／4文字</label><input id="answer-b" data-answer-key="b" type="text" maxlength="4" autocomplete="off" placeholder="□□□□"></div>
+                          <div class="hint-stack"><button class="hint-reveal" type="button"><span>ヒントを1つ開く</span><span>＋</span></button><div class="hint-card" hidden><b>HINT 01</b>「にわなはんかそにわう」はこのままでは意味を成さない。絵画に映っている「にわとり」に注目しよう。</div><div class="hint-card" hidden><b>HINT 02</b>「にわとり」、すなわち「にわ」を文字列から取ると「なはんかそう」となる。答えは4文字なので、もう一度変更が必要だ。</div><div class="hint-card" hidden><b>HINT 03</b>ここは「はんかがい」。すなわち「はんか」が「い」になる。</div></div>
+                        </div>
+                      </article>
+
+                      <article class="puzzle-slide" data-puzzle-slide="2" aria-hidden="true">
+                        <div class="puzzle-slide-media"><figure class="puzzle-artwork"><figcaption>PAINTING C / あいうえお表</figcaption><button class="zoom-trigger" type="button" data-image="assets/painting-c.jpg" data-title="絵画 C — あいうえお表"><img src="assets/painting-c.jpg" alt="五十音表を示す授業風景の絵画"><span class="zoom-hint">＋ 拡大</span></button></figure></div>
+                        <div class="puzzle-slide-body">
+                          <div class="puzzle-code">PUZZLE C / 3 CHARACTERS</div><h2>問題 C</h2>
+                          <p class="problem-text">めうえ、あした、ました<br>繋げて読め</p>
+                          <div class="answer-note"><label for="answer-c">解答メモ／3文字</label><input id="answer-c" data-answer-key="c" type="text" maxlength="3" autocomplete="off" placeholder="□□□"></div>
+                          <div class="hint-stack"><button class="hint-reveal" type="button"><span>ヒントを1つ開く</span><span>＋</span></button><div class="hint-card" hidden><b>HINT 01</b>「めうえ」「あした」「ました」を「め上」「あ下」「ま下」と考え、絵画の50音表と対応させよう。</div><div class="hint-card" hidden><b>HINT 02</b>「め上」は、50音表で「め」の上にある「む」となる。ほかの2つのひらがなも同じように変換しよう。</div></div>
+                        </div>
+                      </article>
+
+                      <article class="puzzle-slide" data-puzzle-slide="3" aria-hidden="true">
+                        <div class="puzzle-slide-media"><figure class="puzzle-artwork"><figcaption>PAINTING D / 天へ</figcaption><button class="zoom-trigger" type="button" data-image="assets/painting-d.jpg" data-title="絵画 D — 天へ"><img src="assets/painting-d.jpg" alt="光へ続く石段を描いた期間限定絵画"><span class="zoom-hint">＋ 拡大</span></button></figure></div>
+                        <div class="puzzle-slide-body">
+                          <div class="puzzle-code">PAINTING D / LIMITED EXHIBITION</div><h2>9月の展示スケジュール</h2>
+                          <div class="exhibition-schedule" aria-label="絵画Dの9月の展示スケジュール"><div class="schedule-row"><span>9/1（火）〜9/6（日）</span><span>23時のペンギン</span></div><div class="schedule-row"><span>9/7（月）〜9/13（日）</span><span>天へ</span></div><div class="schedule-row"><span>9/14（月）〜9/20（日）</span><span>風の記憶</span></div><div class="schedule-row"><span>9/21（月）〜9/27（日）</span><span>夢の残響</span></div></div>
+                        </div>
+                      </article>
+                    </div>
+                  </div>
+                </section>
+
+                <div class="password-clue"><strong>NEXT AREA</strong><p>A・B・Cの答えがそろったら、事務室へ進んでください。</p><button class="office-jump" id="office-jump" type="button">事務室へ向かう →</button></div>
+              </div>
+            </section>
+
+            <section class="chapter" data-chapter="3" aria-labelledby="chapter-title-3" aria-hidden="true">
+              <div class="chapter-inner">
+                <header class="chapter-head">
+                  <div><div class="chapter-index">① / OFFICE</div><h1 id="chapter-title-3">事務室へ向かえ</h1></div>
+                  <div class="chapter-meta">PASSWORD REQUIRED<br>OFFICE ACCESS</div>
+                </header>
+                <section class="office-gate" aria-labelledby="office-gate-title">
+                  <header class="office-gate-head"><span>● OFFICE SECURITY</span><span>AUTHORIZATION REQUIRED</span></header>
+                  <div class="office-gate-body">
+                    <h2 id="office-gate-title">事務室認証画面</h2>
+                    <form class="password-form" id="password-form">
+                      <label for="office-password">OFFICE PASSWORD／ひらがな</label>
+                      <div class="password-row"><input id="office-password" name="password" type="text" placeholder="パスワードを入力" autocomplete="off" aria-describedby="password-feedback"><button type="submit">認証</button></div>
+                    </form>
+                    <div class="password-feedback" id="password-feedback" aria-live="polite"></div>
+                  </div>
+                </section>
+              </div>
+            </section>
+
+            <section class="chapter" data-chapter="4" aria-labelledby="chapter-title-4" aria-hidden="true">
+              <div class="chapter-inner">
+                <header class="chapter-head">
+                  <div><div class="chapter-index">② / FINAL MISSION</div><h1 id="chapter-title-4">裏切り者を特定せよ</h1></div>
+                  <div class="chapter-meta">EVIDENCE 01<br>SEPTEMBER 11</div>
+                </header>
+                <div class="investigation-body" id="investigation-body">
+                  <div class="final-mission-flow">
+                    <p class="chinen-video-intro">知念「これが９月１１日の監視カメラ映像だ。」</p>
+                    <div class="cctv-frame cctv-media-port" id="cctv-media-port" data-video-easy-src="assets/cctv-video-easy.mp4" data-video-hard-src="assets/cctv-video-hard.mp4" aria-label="監視カメラ映像の差し替えポート">
+                      <video class="cctv-video" id="cctv-video" controls playsinline preload="metadata" aria-label="監視カメラ映像"></video>
+                      <div class="cctv-fallback" id="cctv-fallback" role="img" aria-label="9月11日と表示された監視映像。バッグを持った女性が事務室へ入り、右側の壁には絵画Dとして夜のペンギンを描いた絵が展示されている。">
+                        <div class="cctv-meta"><span><b>● REC</b>　CAM 02</span><span>09/11 FRI　21:43:18</span></div>
+                        <div class="cctv-door"></div><div class="cctv-person"><span class="cctv-bag"></span></div>
+                        <div class="cctv-artwork"><div class="penguin-scene"></div></div>
+                        <span class="cctv-port-badge" id="cctv-port-badge">VIDEO PORT READY</span>
+                      </div>
+                    </div>
+                    <p class="cctv-caption">VIDEO SOURCE / CHINEN SEIYA　・　VIDEO SLOT / STANDBY</p>
+                    <p class="next-room-directive">裏切り者の特定が完了したら次の部屋に進んでください。</p>
+                    <form id="culprit-form" hidden><input id="culprit-name" name="culprit-name"><div id="culprit-feedback"></div></form>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </main>
+
+        <footer class="bottom-nav">
+          <button class="back-button" id="back-button" type="button" disabled><b aria-hidden="true">←</b><span>ひとつ前へ戻る</span></button>
+          <div class="nav-current"><b id="nav-current">01</b> / 02</div>
+          <button class="next-button" id="next-button" type="button"><span id="next-label">FINAL MISSIONへ進む</span><b aria-hidden="true">→</b></button>
+        </footer>
+      </div>
+    </div>
+  </div>
+
+  <section class="novel-scene" id="novel-scene" role="dialog" aria-modal="true" aria-labelledby="novel-speaker" aria-hidden="true">
+    <div class="novel-stage">
+      <div class="novel-status"><span><b>●</b> SECURE COMMUNICATION</span><span>CHANNEL 01 / CONNECTED</span></div>
+      <div class="novel-visual" aria-hidden="true">
+        <div class="novel-character"><div class="novel-id"><b>知念 誠也</b><span>PARTNER / SPECTRA AGENT</span></div></div>
+        <div class="novel-signal"><b>ENCRYPTED LINE</b><br>SIGNAL・・・STABLE<br>IDENTITY・・・VERIFIED<br>LOCATION・・・UNKNOWN</div>
+      </div>
+      <div class="novel-dialogue">
+        <div class="novel-dialogue-inner">
+          <div class="novel-speaker" id="novel-speaker">知念 / PARTNER</div>
+          <div class="novel-counter" id="novel-counter">01 / 05</div>
+          <p class="novel-text" id="novel-text" aria-live="polite"></p>
+          <button class="novel-back" id="novel-back" type="button" hidden>‹　戻る</button>
+          <button class="novel-advance" id="novel-advance" type="button">次へ　›</button>
+          <div class="novel-choices" id="novel-choices" hidden><button class="novel-choice" id="novel-return" type="button">引き返す</button><button class="novel-choice proceed" id="novel-proceed" type="button">消失装置へ</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="device-screen" id="device-screen" aria-labelledby="device-title" aria-hidden="true">
+    <div class="device-shell" id="device-shell" aria-hidden="true">
+      <header class="device-titlebar"><span><b id="device-title">SPECTRA / DISAPPEARANCE DEVICE</b></span><span>VOID TRANSFER CONTROL</span><span class="device-window-controls" aria-hidden="true">● PWR　● TARGET　● BUS</span></header>
+      <section class="device-terminal" aria-label="消失装置コマンド端末">
+        <form class="device-command" id="device-form" novalidate>
+          <label for="device-target-name">消失する人物の名前を漢字で入力してください</label>
+          <div class="device-input-row"><input id="device-target-name" name="device-target-name" type="text" maxlength="6" autocomplete="off" spellcheck="false" placeholder="名字または氏名" required><button class="device-activate" id="device-activate" type="submit">EXECUTE</button></div>
+          <p class="device-input-feedback" id="device-input-feedback" aria-live="polite"></p>
+        </form>
+        <div class="terminal-output" id="terminal-output" aria-live="polite"></div>
+        <button class="device-continue" id="device-continue" type="button" disabled>CONTINUE TO REPORT　[ENTER]</button>
+      </section>
+      <footer class="device-statusbar"><span>UNIT 19-2A　│　AUTHORIZED LOCAL SESSION</span><span>STATUS MONITOR　│　BUS 190V DC</span></footer>
+    </div>
+    <div class="device-transition-mask" aria-hidden="true"></div>
+  </section>
+
+  <section class="epilogue-screen" id="epilogue-screen" aria-labelledby="epilogue-heading" aria-hidden="true">
+    <div class="epilogue-top">CODE:2A / SECURE CHANNEL CLOSED</div>
+    <div class="epilogue-dialogue" id="epilogue-dialogue"><div class="epilogue-label"><span id="epilogue-heading">後日譚</span><span id="epilogue-counter">01 / 04</span></div><p class="epilogue-text" id="epilogue-text" aria-live="polite"></p><button class="epilogue-next" id="epilogue-next" type="button">次へ　›</button></div>
+    <div class="epilogue-result" id="epilogue-result"><div><small id="epilogue-result-label">FINAL MISSION / COMMUNICATION CLOSED</small><h2 class="epilogue-title true" id="epilogue-title">通信終了</h2><p class="segment-complete-copy">知念との通信を終了しました。<br>この画面から捜査画面へ戻ることはできません。</p><a class="epilogue-return" href="endings.html" hidden>CASE FILE ARCHIVEで確認する　→</a></div></div>
+  </section>
+
+  <button class="drawer-backdrop" id="drawer-backdrop" type="button" aria-label="絵画タブを閉じる"></button>
+  <aside class="gallery-drawer" id="gallery-drawer" role="dialog" aria-modal="true" aria-label="絵画回想タブ" aria-hidden="true">
+    <header class="drawer-head"><h2>ART ARCHIVE / A—D <small>SWIPE LEFT / RIGHT</small></h2><button class="close-button" id="gallery-close" type="button" aria-label="閉じる">×</button></header>
+    <div class="gallery-memory">
+      <nav class="gallery-memory-nav" aria-label="回想する絵画を選択">
+        <button class="gallery-memory-arrow" id="gallery-memory-prev" type="button">← 前の展示</button>
+        <div class="gallery-memory-tabs" role="tablist" aria-label="絵画一覧">
+          <button class="gallery-memory-tab active" data-gallery-memory="0" role="tab" aria-selected="true" type="button">A</button>
+          <button class="gallery-memory-tab" data-gallery-memory="1" role="tab" aria-selected="false" type="button">B</button>
+          <button class="gallery-memory-tab" data-gallery-memory="2" role="tab" aria-selected="false" type="button">C</button>
+          <button class="gallery-memory-tab" data-gallery-memory="3" role="tab" aria-selected="false" type="button">D</button>
+        </div>
+        <button class="gallery-memory-arrow" id="gallery-memory-next" type="button">次の展示 →</button>
+      </nav>
+      <div class="gallery-memory-viewport">
+        <div class="gallery-memory-track" id="gallery-memory-track">
+          <article class="gallery-memory-slide active" aria-hidden="false">
+            <div class="gallery-memory-art"><button class="gallery-memory-image" data-gallery-art data-image="assets/painting-a.jpg" data-title="絵画 A — 海浜幕張駅" type="button"><img src="assets/painting-a.jpg" alt="夜の海浜幕張駅ホームを描いた絵画"><span class="zoom-hint">＋ 拡大</span></button></div>
+            <div class="gallery-memory-info"><div class="gallery-memory-code"><span>PAINTING A</span><span>ARCHIVE 01 / 04</span></div><h3>海浜幕張駅</h3><p>夜の海浜幕張駅ホームを描いた作品。駅名標には、検見川浜・海浜幕張・幕張豊砂の3駅が並んでいる。</p><div class="gallery-memory-note">回想記録 / 駅名と、その前後の駅を確認できる。</div></div>
+          </article>
+          <article class="gallery-memory-slide" aria-hidden="true">
+            <div class="gallery-memory-art"><button class="gallery-memory-image" data-gallery-art data-image="assets/painting-b.jpg" data-title="絵画 B — 繁華街の鶏" type="button"><img src="assets/painting-b.jpg" alt="夜の繁華街に立つ鶏を描いた絵画"><span class="zoom-hint">＋ 拡大</span></button></div>
+            <div class="gallery-memory-info"><div class="gallery-memory-code"><span>PAINTING B</span><span>ARCHIVE 02 / 04</span></div><h3>繁華街の鶏</h3><p>雨上がりの繁華街。その中央に一羽の鶏が立つ、不思議な構図の作品。</p><div class="gallery-memory-note">回想記録 / 絵の中にあるものを、言葉として捉えてみる。</div></div>
+          </article>
+          <article class="gallery-memory-slide" aria-hidden="true">
+            <div class="gallery-memory-art"><button class="gallery-memory-image" data-gallery-art data-image="assets/painting-c.jpg" data-title="絵画 C — あいうえお表" type="button"><img src="assets/painting-c.jpg" alt="五十音表を示す授業風景の絵画"><span class="zoom-hint">＋ 拡大</span></button></div>
+            <div class="gallery-memory-info"><div class="gallery-memory-code"><span>PAINTING C</span><span>ARCHIVE 03 / 04</span></div><h3>あいうえお表</h3><p>教室の大型画面に映された五十音表。各文字の上下左右の位置関係を確認できる。</p><div class="gallery-memory-note">回想記録 / 表は右から左へ「あ・か・さ・・・」の順に並ぶ。</div></div>
+          </article>
+          <article class="gallery-memory-slide" aria-hidden="true">
+            <div class="gallery-memory-art"><button class="gallery-memory-image" data-gallery-art data-image="assets/painting-d.jpg" data-title="絵画 D — 天へ" type="button"><img src="assets/painting-d.jpg" alt="光へ続く石段を描いた期間限定絵画"><span class="zoom-hint">＋ 拡大</span></button></div>
+            <div class="gallery-memory-info"><div class="gallery-memory-code"><span>PAINTING D</span><span>LIMITED EXHIBITION</span></div><h3>天へ</h3><p>光の差す先へ続く石段を描いた、9月の期間限定展示。</p><div class="gallery-memory-schedule" aria-label="9月の展示予定表"><div class="schedule-row"><span>9/1（火）〜9/6（日）</span><span>23時のペンギン</span></div><div class="schedule-row"><span>9/7（月）〜9/13（日）</span><span>天へ</span></div><div class="schedule-row"><span>9/14（月）〜9/20（日）</span><span>風の記憶</span></div><div class="schedule-row"><span>9/21（月）〜9/27（日）</span><span>夢の残響</span></div></div></div>
+          </article>
+        </div>
+      </div>
+    </div>
+    <button class="gallery-exit" id="gallery-exit" type="button">回想を終了して捜査へ戻る</button>
+  </aside>
+
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-labelledby="lightbox-title" aria-hidden="true">
+    <header class="lightbox-head"><span class="lightbox-title" id="lightbox-title">資料</span><button class="close-button" id="lightbox-close" type="button" aria-label="画像を閉じる">×</button></header>
+    <div class="lightbox-stage" id="lightbox-stage"><img class="lightbox-image" id="lightbox-image" alt=""></div>
+    <div class="lightbox-tools"><button class="tool-button" id="zoom-out" type="button" aria-label="縮小">−</button><span class="zoom-readout" id="zoom-readout">100%</span><button class="tool-button" id="zoom-in" type="button" aria-label="拡大">＋</button><button class="tool-button" id="zoom-reset" type="button">RESET</button></div>
+  </div>
+
+  <section class="failure" id="failure" aria-labelledby="failure-title" aria-hidden="true">
+    <div class="failure-card">
+      <header class="failure-head"><span>MISSION FAILED</span><span>TIME LIMIT EXCEEDED</span></header>
+      <div class="failure-content">
+        <h2 id="failure-title">時間切れだ。</h2>
+        <p>知念）10分<ruby>経<rt>た</rt></ruby>っちゃったようだな。お<ruby>偉<rt>えら</rt></ruby>いさんが<ruby>消失装置<rt>しょうしつそうち</rt></ruby>の<ruby>使用権限<rt>しようけんげん</rt></ruby>を10分間限定で<ruby>解放<rt>かいほう</rt></ruby>していたから、もう俺達にはどうしようもないみたいだ…</p>
+        <p class="failure-epilogue">…その後、スペクトラでは情報<ruby>漏洩<rt>ろうえい</rt></ruby>が相次ぎ、次第に<ruby>崩壊<rt>ほうかい</rt></ruby>に向かっていった</p>
+        <a class="exit-link" href="index.html"><span>出口へ向かってください</span><span aria-hidden="true">→</span></a>
+      </div>
+    </div>
+  </section>
+
+  <div class="scene-transition entry-hold" id="scene-transition" aria-hidden="false">
+    <span class="scene-slab"></span><span class="scene-stripe"></span><span class="scene-copy" id="scene-copy">OFFICE / AUTHENTICATION</span>
+    <section class="mission-briefing" id="mission-briefing" role="dialog" aria-modal="true" aria-labelledby="mission-briefing-title" aria-hidden="true">
+      <div class="mission-briefing-head"><b id="mission-briefing-label">FIRST MISSION</b><span>OPERATION BRIEFING</span></div>
+      <h2 id="mission-briefing-title"></h2>
+      <p class="mission-briefing-summary" id="mission-briefing-summary"></p>
+      <p class="mission-rule-title">MISSION RULES</p>
+      <ul class="mission-rules" id="mission-rules"></ul>
+      <button class="mission-confirm" id="mission-confirm" type="button"><span id="mission-confirm-label">確認して開始する</span><span aria-hidden="true">→</span></button>
+    </section>
+  </div>
+
+  <script>
+    (() => {
+      const difficultyParams = new URLSearchParams(window.location.search);
+      const easyMode = difficultyParams.get('difficulty') === 'easy';
+      const difficultyBadge = document.querySelector('.difficulty-badge');
+      if (easyMode) {
+        document.body.classList.add('easy');
+        difficultyBadge.textContent = 'かんたん / EASY';
+        difficultyBadge.setAttribute('aria-label','難易度 かんたん');
+        document.title = 'CODE:2A — かんたんモード';
+      }
+
+      const missionApp = document.querySelector('.app');
+      const difficultyGate = document.getElementById('difficulty-gate');
+      let selectedDifficulty = '';
+
+      document.querySelectorAll('[data-current-difficulty]').forEach(button => {
+        button.addEventListener('click', () => {
+          selectedDifficulty = button.dataset.currentDifficulty;
+          const isEasy = selectedDifficulty === 'easy';
+          document.body.classList.toggle('easy', isEasy);
+          difficultyBadge.textContent = isEasy ? 'かんたん / EASY' : '難しい / HARD';
+          difficultyBadge.setAttribute('aria-label', isEasy ? '難易度 かんたん' : '難易度 難しい');
+
+          const videoSource = isEasy
+            ? cctvMediaPort.dataset.videoEasySrc
+            : cctvMediaPort.dataset.videoHardSrc;
+          const videoLabel = isEasy ? 'EASY VIDEO' : 'HARD VIDEO';
+          document.getElementById('cctv-port-badge').textContent = `${videoLabel} / LOADING`;
+          cctvMediaPort.classList.remove('has-video');
+          cctvVideo.pause();
+          cctvVideo.src = videoSource;
+          cctvVideo.load();
+
+          difficultyGate.classList.add('closed');
+          difficultyGate.setAttribute('aria-hidden','true');
+          missionApp.removeAttribute('aria-hidden');
+          missionApp.removeAttribute('inert');
+          if ('inert' in missionApp) missionApp.inert = false;
+          setTimeout(() => officePassword.focus(),460);
+        });
+      });
+
+      const easyRubyReadings = new Map([
+        ['小笠原結衣','おがさわらゆい'],['神崎美月','かんざきみづき'],['相沢洸太','あいざわこうた'],['知念誠也','ちねんせいや'],
+        ['情報漏洩','じょうほうろうえい'],['消失対象','しょうしつたいしょう'],['消失装置','しょうしつそうち'],['監視カメラ','かんしかめら'],['監視映像','かんしえいぞう'],
+        ['絵画展示','かいがてんじ'],['取り調べ','とりしらべ'],['世界征服','せかいせいふく'],['期間限定','きかんげんてい'],['使用権限','しようけんげん'],
+        ['制限時間','せいげんじかん'],['機密保護','きみつほご'],['著名画家','ちょめいがか'],['槐美術館','えんじゅびじゅつかん'],['海浜幕張駅','かいひんまくはりえき'],
+        ['検見川浜','けみがわはま'],['幕張豊砂','まくはりとよすな'],['裏切り者','うらぎりもの'],['事務室','じむしつ'],['容疑者','ようぎしゃ'],
+        ['侵入経路','しんにゅうけいろ'],['秘密裏','ひみつり'],['敵国','てきこく'],['組織','そしき'],['機密','きみつ'],['漏洩','ろうえい'],
+        ['任務','にんむ'],['潜入','せんにゅう'],['相棒','あいぼう'],['調査','ちょうさ'],['絵画','かいが'],['展示','てんじ'],
+        ['暗号','あんごう'],['解読','かいどく'],['認証','にんしょう'],['特定','とくてい'],['証拠','しょうこ'],['証言','しょうげん'],
+        ['消失','しょうしつ'],['装置','そうち'],['映像','えいぞう'],['監視','かんし'],['実行','じっこう'],['決断','けつだん'],
+        ['対象','たいしょう'],['管理人','かんりにん'],['現地','げんち'],['説明','せつめい'],['送信','そうしん'],['解放','かいほう'],
+        ['崩壊','ほうかい'],['判断','はんだん'],['確認','かくにん'],['記録','きろく'],['取得','しゅとく'],['発生','はっせい'],
+        ['内部','ないぶ'],['事件','じけん'],['真相','しんそう'],['館内','かんない'],['人物','じんぶつ'],['名字','みょうじ'],
+        ['氏名','しめい'],['矛盾','むじゅん'],['任意','にんい'],['難易度','なんいど'],['操作','そうさ'],['期間','きかん']
+      ]);
+      const easyRubyTerms = [...easyRubyReadings.keys()].sort((a,b) => b.length - a.length);
+      const easyRubyPattern = new RegExp(`(${easyRubyTerms.map(term => term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')})`,'g');
+
+      function applyEasyRuby(root = document.body) {
+        if (!easyMode || !root) return;
+        const textNodes = [];
+        const walker = document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+        while (walker.nextNode()) textNodes.push(walker.currentNode);
+        textNodes.forEach(node => {
+          const parent = node.parentElement;
+          if (!parent || parent.closest('ruby,rt,script,style,textarea,input,[data-no-ruby]') || !easyRubyPattern.test(node.nodeValue)) {
+            easyRubyPattern.lastIndex = 0;
+            return;
+          }
+          easyRubyPattern.lastIndex = 0;
+          const fragment = document.createDocumentFragment();
+          let lastIndex = 0;
+          node.nodeValue.replace(easyRubyPattern,(term,match,offset) => {
+            if (offset > lastIndex) fragment.append(document.createTextNode(node.nodeValue.slice(lastIndex,offset)));
+            const ruby = document.createElement('ruby');
+            ruby.append(document.createTextNode(term));
+            const reading = document.createElement('rt');
+            reading.textContent = easyRubyReadings.get(term);
+            ruby.append(reading);
+            fragment.append(ruby);
+            lastIndex = offset + term.length;
+            return term;
+          });
+          if (lastIndex < node.nodeValue.length) fragment.append(document.createTextNode(node.nodeValue.slice(lastIndex)));
+          node.replaceWith(fragment);
+        });
+      }
+
+      const chapters = [...document.querySelectorAll('.chapter')];
+      const track = document.getElementById('chapter-track');
+      const chapterViewport = document.getElementById('chapter-viewport');
+      const backButton = document.getElementById('back-button');
+      const nextButton = document.getElementById('next-button');
+      const nextLabel = document.getElementById('next-label');
+      const navCurrent = document.getElementById('nav-current');
+      const novelScene = document.getElementById('novel-scene');
+      const novelText = document.getElementById('novel-text');
+      const novelCounter = document.getElementById('novel-counter');
+      const novelBack = document.getElementById('novel-back');
+      const novelAdvance = document.getElementById('novel-advance');
+      const novelChoices = document.getElementById('novel-choices');
+      const novelReturn = document.getElementById('novel-return');
+      const novelProceed = document.getElementById('novel-proceed');
+      const missionBriefing = document.getElementById('mission-briefing');
+      const missionBriefingLabel = document.getElementById('mission-briefing-label');
+      const missionBriefingTitle = document.getElementById('mission-briefing-title');
+      const missionBriefingSummary = document.getElementById('mission-briefing-summary');
+      const missionRules = document.getElementById('mission-rules');
+      const missionConfirm = document.getElementById('mission-confirm');
+      const missionConfirmLabel = document.getElementById('mission-confirm-label');
+      const labels = ['', '', '', 'FINAL MISSIONへ進む', '捜査フェーズ'];
+      const briefingDialogueLines = [
+        'やあ！知念だ。どうやら大変なことになっちまったようだが、一緒に頑張ろう！',
+        'まずは絵画展示エリアへ向かい、絵画の問題を調べてくれ。',
+        '絵画A〜Dをよく調べてみてくれ。困った時は各問題のヒントを使える。'
+      ];
+      const officeDialogueLines = [
+        '認証を完了して、容疑者の取り調べ資料を無事受け取れたようだな。',
+        'お前が頑張っている間に、こちらで9月11日当日の監視カメラ映像を入手しておいた。',
+        'それでは、取り調べ資料と映像を照らし合わせて、裏切り者を特定してくれ。頼んだぞ。'
+      ];
+      const targetDialogueLines = [
+        '裏切り者が特定できたようだな。',
+        'では、消失装置がある次の部屋へ向かってくれ。',
+        '捜査内容をもう一度確認し、消失装置へ対象者の名前を入力してくれ。'
+      ];
+      const firstMissionBriefing = {
+        label: 'FIRST MISSION',
+        title: '絵画展示エリアを調査する',
+        summary: '絵画A〜Dを調査し、展示されている問題を解いてください。',
+        rules: [
+          '横フリックで絵画A〜Dを切り替える。',
+          '絵画A〜Cの答えは、それぞれのメモ欄へ記録する。',
+          '困った時は、各問題のヒントを任意のタイミングで確認できる。'
+        ],
+        confirm: '確認して絵画展示エリアへ'
+      };
+      const secondMissionBriefing = {
+        label: 'FINAL MISSION',
+        title: '裏切り者を探す',
+        summary: '受け取った取り調べ資料と監視カメラ映像を照らし合わせ、情報漏洩を起こした人物を特定してください。',
+        rules: [
+          '裏切り者は一人のみ。',
+          '裏切り者は嘘をついている。'
+        ],
+        confirm: '確認してFINAL MISSIONへ'
+      };
+      let current = 3;
+      let maxUnlocked = 3;
+      let officeCleared = false;
+      let novelIndex = 0;
+      let novelSeen = false;
+      let novelActive = false;
+      let activeDialogueLines = briefingDialogueLines;
+      let novelOnComplete = null;
+      let novelChoiceMode = false;
+      let novelMissionBriefing = null;
+      let missionBriefingAction = null;
+      let transitionBusy = true;
+
+      function renderNovelLine() {
+        const finalLine = novelIndex === activeDialogueLines.length - 1;
+        novelText.textContent = activeDialogueLines[novelIndex];
+        novelCounter.textContent = `${String(novelIndex + 1).padStart(2, '0')} / ${String(activeDialogueLines.length).padStart(2, '0')}`;
+        novelAdvance.textContent = finalLine ? '通信を終了　›' : '次へ　›';
+        novelBack.hidden = novelIndex === 0;
+        novelAdvance.hidden = novelChoiceMode && finalLine;
+        novelChoices.hidden = !(novelChoiceMode && finalLine);
+        novelText.animate([{opacity:0,transform:'translateY(7px)'},{opacity:1,transform:'translateY(0)'}],{duration:300,easing:'ease-out'});
+        if (novelChoiceMode && finalLine) setTimeout(() => novelReturn.focus(), 260);
+      }
+
+      function openNovelPart(lines, onComplete, choiceMode = false, phaseBriefing = null) {
+        if (novelActive) return;
+        activeDialogueLines = lines;
+        novelOnComplete = onComplete;
+        novelChoiceMode = choiceMode;
+        novelMissionBriefing = phaseBriefing;
+        novelIndex = 0;
+        novelActive = true;
+        renderNovelLine();
+        novelScene.classList.remove('closing');
+        novelScene.classList.add('open');
+        novelScene.setAttribute('aria-hidden', 'false');
+        setTimeout(() => novelAdvance.focus(), 420);
+      }
+
+      function resetNovelPart() {
+        novelScene.classList.remove('open', 'closing', 'transitioning');
+        novelScene.setAttribute('aria-hidden', 'true');
+        novelActive = false;
+        novelChoiceMode = false;
+        novelOnComplete = null;
+        novelMissionBriefing = null;
+        novelBack.hidden = true;
+        novelAdvance.hidden = false;
+        novelChoices.hidden = true;
+      }
+
+      function closeNovelPart(onComplete) {
+        if (novelScene.classList.contains('transitioning')) return;
+        novelScene.classList.add('transitioning');
+        if (novelMissionBriefing) {
+          const briefing = novelMissionBriefing;
+          playMissionBriefing(briefing, resetNovelPart, onComplete);
+          return;
+        }
+        playDialogueTransition(() => {
+          resetNovelPart();
+          if (onComplete) onComplete();
+        });
+      }
+
+      function advanceNovelPart() {
+        if (!novelActive || novelScene.classList.contains('closing') || novelScene.classList.contains('transitioning')) return;
+        if (novelChoiceMode && novelIndex === activeDialogueLines.length - 1) return;
+        if (novelIndex < activeDialogueLines.length - 1) {
+          novelIndex += 1;
+          renderNovelLine();
+          return;
+        }
+        closeNovelPart(novelOnComplete);
+      }
+
+      novelAdvance.addEventListener('click', advanceNovelPart);
+      novelBack.addEventListener('click', () => {
+        if (!novelActive || novelIndex === 0 || novelScene.classList.contains('transitioning')) return;
+        novelIndex -= 1;
+        renderNovelLine();
+        novelBack.focus();
+      });
+      novelReturn.addEventListener('click', () => closeNovelPart(() => {
+        setCulpritFormEnabled(true);
+        culpritFeedback.textContent = '捜査画面へ戻りました。人物の選択と証拠をもう一度確認できます。';
+      }));
+      novelProceed.addEventListener('click', () => {
+        novelChoiceMode = false;
+        activeDialogueLines = ['そうか。決断は受け取った。・・・健闘を祈る。'];
+        novelOnComplete = () => openDeviceScreen(false);
+        novelIndex = 0;
+        renderNovelLine();
+        novelAdvance.focus();
+      });
+
+      function goTo(index, unlock = false, animate = true) {
+        if (index < 3 || index >= chapters.length) return;
+        if (index === 4 && !officeCleared) return;
+        if (unlock) maxUnlocked = Math.max(maxUnlocked, index);
+        if (index > maxUnlocked) return;
+        if (index === 2 && current < 2 && !novelSeen) {
+          novelSeen = true;
+          playDialogueTransition(() => {
+            openNovelPart(briefingDialogueLines, () => {
+              goTo(2, true, false);
+            }, false, firstMissionBriefing);
+          });
+          return;
+        }
+        const applyChapter = instant => {
+          current = index;
+          chapterViewport.scrollLeft = 0;
+          if (instant) track.style.transition = 'none';
+          track.style.transform = `translateX(-${index * 100}%)`;
+          navCurrent.textContent = String(index - 2).padStart(2, '0');
+          chapters.forEach((chapter, i) => {
+            const active = i === index;
+            chapter.classList.toggle('active', active);
+            chapter.setAttribute('aria-hidden', String(!active));
+            if ('inert' in chapter) chapter.inert = !active;
+            if (active) chapter.scrollTop = 0;
+          });
+          backButton.disabled = index === 3;
+          nextButton.disabled = index === chapters.length - 1 || (index === 3 && !officeCleared);
+          nextLabel.textContent = labels[index];
+          if (index >= 2) startTimer();
+          if (instant) requestAnimationFrame(() => { track.style.transition = ''; });
+        };
+        if (index !== current && animate) {
+          playDialogueTransition(() => applyChapter(true));
+          return;
+        }
+        applyChapter(!animate);
+      }
+
+      backButton.addEventListener('click', () => goTo(current - 1));
+      nextButton.addEventListener('click', () => goTo(current + 1, true));
+      document.getElementById('office-jump').addEventListener('click', () => goTo(3, true));
+
+      // Bind document previews before the later investigation setup so the
+      // briefing sheets and map reference are available from the first screen.
+      const lightbox = document.getElementById('lightbox');
+      const lightboxImage = document.getElementById('lightbox-image');
+      const lightboxTitle = document.getElementById('lightbox-title');
+      const lightboxStage = document.getElementById('lightbox-stage');
+      const lightboxClose = document.getElementById('lightbox-close');
+      const zoomReadout = document.getElementById('zoom-readout');
+      let zoom = 1;
+      let lastZoomTrigger = null;
+      let imagePanX = 0;
+      let imagePanY = 0;
+      let imagePanStartX = 0;
+      let imagePanStartY = 0;
+      let imagePanOriginX = 0;
+      let imagePanOriginY = 0;
+      let imagePanPointer = null;
+
+      function applyImageTransform() {
+        lightboxImage.style.transform = `translate3d(${imagePanX}px,${imagePanY}px,0) scale(${zoom})`;
+      }
+      function resetImagePan() {
+        imagePanX = 0;
+        imagePanY = 0;
+        applyImageTransform();
+      }
+
+      function setZoom(value) {
+        zoom = Math.min(4, Math.max(.5, value));
+        if (zoom <= 1) {
+          imagePanX = 0;
+          imagePanY = 0;
+        }
+        lightboxStage.classList.toggle('can-pan', zoom > 1);
+        applyImageTransform();
+        zoomReadout.textContent = `${Math.round(zoom * 100)}%`;
+      }
+      function openLightbox(trigger) {
+        lastZoomTrigger = trigger;
+        lightboxImage.src = trigger.dataset.image;
+        const previewImage = trigger.querySelector('img');
+        lightboxImage.alt = trigger.dataset.alt || (previewImage ? previewImage.alt : trigger.dataset.title);
+        lightboxTitle.textContent = trigger.dataset.title;
+        setZoom(1);
+        lightbox.classList.add('open');
+        lightbox.setAttribute('aria-hidden', 'false');
+        lightboxClose.focus();
+      }
+      function closeLightbox() {
+        lightbox.classList.remove('open');
+        lightbox.setAttribute('aria-hidden', 'true');
+        if (lastZoomTrigger) lastZoomTrigger.focus();
+      }
+      document.querySelectorAll('.zoom-trigger, .source-reference').forEach(trigger => trigger.addEventListener('click', () => openLightbox(trigger)));
+      lightboxClose.addEventListener('click', closeLightbox);
+      document.getElementById('zoom-in').addEventListener('click', () => setZoom(zoom + .25));
+      document.getElementById('zoom-out').addEventListener('click', () => setZoom(zoom - .25));
+      document.getElementById('zoom-reset').addEventListener('click', () => setZoom(1));
+      lightboxStage.addEventListener('wheel', event => {
+        event.preventDefault();
+        setZoom(zoom + (event.deltaY < 0 ? .15 : -.15));
+      }, { passive: false });
+      lightboxStage.addEventListener('pointerdown', event => {
+        if (zoom <= 1 || (event.pointerType === 'mouse' && event.button !== 0)) return;
+        event.preventDefault();
+        imagePanPointer = event.pointerId;
+        imagePanStartX = event.clientX;
+        imagePanStartY = event.clientY;
+        imagePanOriginX = imagePanX;
+        imagePanOriginY = imagePanY;
+        lightboxStage.classList.add('panning');
+        lightboxStage.setPointerCapture(event.pointerId);
+      });
+      lightboxStage.addEventListener('pointermove', event => {
+        if (imagePanPointer !== event.pointerId) return;
+        const maxX = Math.max(0, lightboxImage.clientWidth * (zoom - 1) / 2);
+        const maxY = Math.max(0, lightboxImage.clientHeight * (zoom - 1) / 2);
+        imagePanX = Math.max(-maxX, Math.min(maxX, imagePanOriginX + event.clientX - imagePanStartX));
+        imagePanY = Math.max(-maxY, Math.min(maxY, imagePanOriginY + event.clientY - imagePanStartY));
+        applyImageTransform();
+      });
+      function endImagePan(event) {
+        if (imagePanPointer !== event.pointerId) return;
+        imagePanPointer = null;
+        lightboxStage.classList.remove('panning');
+        if (lightboxStage.hasPointerCapture(event.pointerId)) lightboxStage.releasePointerCapture(event.pointerId);
+      }
+      lightboxStage.addEventListener('pointerup', endImagePan);
+      lightboxStage.addEventListener('pointercancel', endImagePan);
+
+      const galleryButton = document.getElementById('gallery-button');
+      const gallery = document.getElementById('gallery-drawer');
+      const galleryClose = document.getElementById('gallery-close');
+      const galleryExit = document.getElementById('gallery-exit');
+      const drawerBackdrop = document.getElementById('drawer-backdrop');
+      const galleryMemoryViewport = document.querySelector('.gallery-memory-viewport');
+      const galleryMemoryTrack = document.getElementById('gallery-memory-track');
+      const galleryMemorySlides = [...document.querySelectorAll('.gallery-memory-slide')];
+      const galleryMemoryTabs = [...document.querySelectorAll('[data-gallery-memory]')];
+      let galleryMemoryCurrent = 0;
+      let galleryMemoryDragStart = null;
+      let galleryMemoryDragDelta = 0;
+      let galleryMemoryDragStartedAt = 0;
+      let galleryMemoryDidDrag = false;
+      let galleryUnlocked = false;
+
+      function setGalleryMemory(index) {
+        galleryMemoryCurrent = (index + galleryMemorySlides.length) % galleryMemorySlides.length;
+        galleryMemoryTrack.style.transform = `translate3d(-${galleryMemoryCurrent * 100}%,0,0)`;
+        galleryMemorySlides.forEach((slide, i) => {
+          const active = i === galleryMemoryCurrent;
+          slide.classList.toggle('active', active);
+          slide.setAttribute('aria-hidden', String(!active));
+          slide.querySelectorAll('[data-gallery-art]').forEach(control => { control.tabIndex = active ? 0 : -1; });
+        });
+        galleryMemoryTabs.forEach((tab, i) => {
+          const active = i === galleryMemoryCurrent;
+          tab.classList.toggle('active', active);
+          tab.setAttribute('aria-selected', String(active));
+        });
+      }
+      setGalleryMemory(0);
+
+      function unlockGallery() {
+        if (galleryUnlocked) return;
+        galleryUnlocked = true;
+        galleryButton.disabled = false;
+        galleryButton.classList.add('unlocked');
+      }
+      function setGallery(open) {
+        if (!galleryUnlocked) return;
+        gallery.classList.toggle('open', open);
+        drawerBackdrop.classList.toggle('open', open);
+        gallery.setAttribute('aria-hidden', String(!open));
+        galleryButton.setAttribute('aria-expanded', String(open));
+        if (open) galleryClose.focus();
+        else galleryButton.focus();
+      }
+      galleryButton.addEventListener('click', () => setGallery(true));
+      galleryClose.addEventListener('click', () => setGallery(false));
+      galleryExit.addEventListener('click', () => setGallery(false));
+      drawerBackdrop.addEventListener('click', () => setGallery(false));
+      document.getElementById('gallery-memory-prev').addEventListener('click', () => setGalleryMemory(galleryMemoryCurrent - 1));
+      document.getElementById('gallery-memory-next').addEventListener('click', () => setGalleryMemory(galleryMemoryCurrent + 1));
+      galleryMemoryTabs.forEach(tab => tab.addEventListener('click', () => setGalleryMemory(Number(tab.dataset.galleryMemory))));
+      galleryMemoryViewport.addEventListener('pointerdown', event => {
+        if (event.button !== 0) return;
+        galleryMemoryDragStart = event.clientX;
+        galleryMemoryDragDelta = 0;
+        galleryMemoryDragStartedAt = performance.now();
+        galleryMemoryDidDrag = false;
+        galleryMemoryViewport.setPointerCapture(event.pointerId);
+        galleryMemoryTrack.style.transition = 'none';
+      });
+      galleryMemoryViewport.addEventListener('pointermove', event => {
+        if (galleryMemoryDragStart === null) return;
+        galleryMemoryDragDelta = event.clientX - galleryMemoryDragStart;
+        const base = -galleryMemoryCurrent * galleryMemoryViewport.clientWidth;
+        galleryMemoryTrack.style.transform = `translate3d(${base + galleryMemoryDragDelta}px,0,0)`;
+      });
+      function endGalleryMemoryDrag() {
+        if (galleryMemoryDragStart === null) return;
+        const elapsed = Math.max(1, performance.now() - galleryMemoryDragStartedAt);
+        const quickFlick = Math.abs(galleryMemoryDragDelta) >= 26 && elapsed <= 320;
+        galleryMemoryDidDrag = Math.abs(galleryMemoryDragDelta) > 12;
+        const move = Math.abs(galleryMemoryDragDelta) > 55 || quickFlick ? (galleryMemoryDragDelta < 0 ? 1 : -1) : 0;
+        galleryMemoryDragStart = null;
+        galleryMemoryTrack.style.transition = '';
+        setGalleryMemory(galleryMemoryCurrent + move);
+      }
+      galleryMemoryViewport.addEventListener('pointerup', endGalleryMemoryDrag);
+      galleryMemoryViewport.addEventListener('pointercancel', endGalleryMemoryDrag);
+
+      const puzzleViewport = document.getElementById('puzzle-viewport');
+      const puzzleTrack = document.getElementById('puzzle-track');
+      const puzzleSlides = [...document.querySelectorAll('[data-puzzle-slide]')];
+      const puzzleTabs = [...document.querySelectorAll('[data-puzzle-index]')];
+      let puzzleCurrent = 0;
+      let puzzleDragStart = null;
+      let puzzleDragDelta = 0;
+      let puzzleDragStartedAt = 0;
+      let puzzleDidDrag = false;
+      let puzzleCaptureTarget = null;
+
+      function setPuzzleSlide(index) {
+        puzzleCurrent = (index + puzzleSlides.length) % puzzleSlides.length;
+        puzzleTrack.style.transform = `translate3d(-${puzzleCurrent * 100}%,0,0)`;
+        puzzleSlides.forEach((slide, slideIndex) => {
+          const active = slideIndex === puzzleCurrent;
+          slide.classList.toggle('active', active);
+          slide.setAttribute('aria-hidden', String(!active));
+          if ('inert' in slide) slide.inert = !active;
+        });
+        puzzleTabs.forEach((tab, tabIndex) => {
+          const active = tabIndex === puzzleCurrent;
+          tab.classList.toggle('active', active);
+          tab.setAttribute('aria-selected', String(active));
+        });
+      }
+
+      document.getElementById('puzzle-prev').addEventListener('click', () => setPuzzleSlide(puzzleCurrent - 1));
+      document.getElementById('puzzle-next').addEventListener('click', () => setPuzzleSlide(puzzleCurrent + 1));
+      puzzleTabs.forEach(tab => tab.addEventListener('click', () => setPuzzleSlide(Number(tab.dataset.puzzleIndex))));
+      puzzleViewport.addEventListener('pointerdown', event => {
+        const artworkZoomButton = event.target.closest('.puzzle-artwork .zoom-trigger');
+        if (event.button !== 0 || event.target.closest('input') || (event.target.closest('button') && !artworkZoomButton)) return;
+        puzzleDragStart = event.clientX;
+        puzzleDragDelta = 0;
+        puzzleDragStartedAt = performance.now();
+        puzzleDidDrag = false;
+        puzzleCaptureTarget = artworkZoomButton || puzzleViewport;
+        puzzleTrack.style.transition = 'none';
+      });
+      puzzleViewport.addEventListener('pointermove', event => {
+        if (puzzleDragStart === null) return;
+        puzzleDragDelta = event.clientX - puzzleDragStart;
+        if (Math.abs(puzzleDragDelta) > 8) {
+          puzzleDidDrag = true;
+          event.preventDefault();
+          if (puzzleCaptureTarget && !puzzleCaptureTarget.hasPointerCapture(event.pointerId)) puzzleCaptureTarget.setPointerCapture(event.pointerId);
+        }
+        const base = -puzzleCurrent * puzzleViewport.clientWidth;
+        puzzleTrack.style.transform = `translate3d(${base + puzzleDragDelta}px,0,0)`;
+      });
+      function endPuzzleDrag(event) {
+        if (puzzleDragStart === null) return;
+        const elapsed = Math.max(1, performance.now() - puzzleDragStartedAt);
+        const quickFlick = Math.abs(puzzleDragDelta) >= 26 && elapsed <= 320;
+        const move = Math.abs(puzzleDragDelta) > 55 || quickFlick ? (puzzleDragDelta < 0 ? 1 : -1) : 0;
+        puzzleDragStart = null;
+        puzzleTrack.style.transition = '';
+        if (event && puzzleCaptureTarget && puzzleCaptureTarget.hasPointerCapture(event.pointerId)) puzzleCaptureTarget.releasePointerCapture(event.pointerId);
+        puzzleCaptureTarget = null;
+        setPuzzleSlide(puzzleCurrent + move);
+        setTimeout(() => { puzzleDidDrag = false; }, 0);
+      }
+      puzzleViewport.addEventListener('pointerup', endPuzzleDrag);
+      puzzleViewport.addEventListener('pointercancel', endPuzzleDrag);
+      puzzleViewport.addEventListener('dragstart', event => {
+        if (event.target.closest('.puzzle-artwork')) event.preventDefault();
+      });
+      puzzleViewport.addEventListener('click', event => {
+        if (!puzzleDidDrag || !event.target.closest('.puzzle-artwork .zoom-trigger')) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        puzzleDidDrag = false;
+      }, true);
+      setPuzzleSlide(0);
+
+      const answerStorageKey = 'spectra-code2a-answer-notes';
+      const answerFields = [...document.querySelectorAll('[data-answer-key]')];
+      let answerNotes = {};
+      try { answerNotes = JSON.parse(sessionStorage.getItem(answerStorageKey) || '{}'); }
+      catch { answerNotes = {}; }
+
+      function saveAnswerNotes() {
+        try { sessionStorage.setItem(answerStorageKey, JSON.stringify(answerNotes)); }
+        catch { /* file:// で保存領域が使えない場合も画面内同期は継続する */ }
+      }
+
+      answerFields.forEach(field => {
+        const key = field.dataset.answerKey;
+        field.value = answerNotes[key] || '';
+        field.addEventListener('input', () => {
+          answerNotes[key] = field.value;
+          answerFields.filter(other => other !== field && other.dataset.answerKey === key).forEach(other => {
+            other.value = field.value;
+          });
+          saveAnswerNotes();
+        });
+      });
+
+      document.querySelectorAll('.hint-reveal').forEach(button => button.addEventListener('click', () => {
+        const cards = [...button.parentElement.querySelectorAll('.hint-card')];
+        const next = cards.find(card => card.hidden);
+        if (next) {
+          next.hidden = false;
+          const remaining = cards.filter(card => card.hidden).length;
+          button.firstElementChild.textContent = remaining ? '次のヒントを開く' : 'ヒントをすべて隠す';
+          button.lastElementChild.textContent = remaining ? '＋' : '−';
+        } else {
+          cards.forEach(card => card.hidden = true);
+          button.firstElementChild.textContent = 'ヒントを1つ開く';
+          button.lastElementChild.textContent = '＋';
+        }
+      }));
+
+      const mapCard = document.querySelector('.map-card');
+      const mapBlueprint = document.querySelector('.map-blueprint');
+      const mapExpand = document.getElementById('map-expand');
+      const mapZoomReadout = document.getElementById('map-zoom-readout');
+      let mapZoom = 1;
+      let mapPanX = 0;
+      let mapPanY = 0;
+      let mapPanStartX = 0;
+      let mapPanStartY = 0;
+      let mapPanOriginX = 0;
+      let mapPanOriginY = 0;
+      let mapPanPointer = null;
+      function applyMapTransform() {
+        mapBlueprint.style.transform = `translate3d(${mapPanX}px,${mapPanY}px,0) scale(${mapZoom})`;
+      }
+      function setMapZoom(value) {
+        mapZoom = Math.min(4, Math.max(.5, value));
+        if (mapZoom <= 1) {
+          mapPanX = 0;
+          mapPanY = 0;
+        }
+        mapCard.classList.toggle('can-pan', mapZoom > 1 && mapCard.classList.contains('fullscreen'));
+        applyMapTransform();
+        mapZoomReadout.textContent = `${Math.round(mapZoom * 100)}%`;
+      }
+      function setMapFullscreen(expanded) {
+        mapCard.classList.toggle('fullscreen', expanded);
+        document.body.classList.toggle('map-fullscreen', expanded);
+        mapExpand.textContent = expanded ? '全画面を閉じる' : '全画面表示';
+        mapExpand.setAttribute('aria-expanded', String(expanded));
+        if (!expanded) setMapZoom(1);
+        else mapCard.classList.toggle('can-pan', mapZoom > 1);
+      }
+      mapExpand.addEventListener('click', () => {
+        setMapFullscreen(!mapCard.classList.contains('fullscreen'));
+      });
+      document.getElementById('map-zoom-in').addEventListener('click', () => setMapZoom(mapZoom + .25));
+      document.getElementById('map-zoom-out').addEventListener('click', () => setMapZoom(mapZoom - .25));
+      document.getElementById('map-zoom-reset').addEventListener('click', () => setMapZoom(1));
+      mapCard.addEventListener('wheel', event => {
+        if (!mapCard.classList.contains('fullscreen')) return;
+        event.preventDefault();
+        setMapZoom(mapZoom + (event.deltaY < 0 ? .15 : -.15));
+      }, { passive:false });
+      mapCard.addEventListener('pointerdown', event => {
+        if (!mapCard.classList.contains('fullscreen') || mapZoom <= 1 || event.target.closest('button') || (event.pointerType === 'mouse' && event.button !== 0)) return;
+        event.preventDefault();
+        mapPanPointer = event.pointerId;
+        mapPanStartX = event.clientX;
+        mapPanStartY = event.clientY;
+        mapPanOriginX = mapPanX;
+        mapPanOriginY = mapPanY;
+        mapCard.classList.add('panning');
+        mapCard.setPointerCapture(event.pointerId);
+      });
+      mapCard.addEventListener('pointermove', event => {
+        if (mapPanPointer !== event.pointerId) return;
+        const maxX = Math.max(0, mapBlueprint.clientWidth * (mapZoom - 1) / 2);
+        const maxY = Math.max(0, mapBlueprint.clientHeight * (mapZoom - 1) / 2);
+        mapPanX = Math.max(-maxX, Math.min(maxX, mapPanOriginX + event.clientX - mapPanStartX));
+        mapPanY = Math.max(-maxY, Math.min(maxY, mapPanOriginY + event.clientY - mapPanStartY));
+        applyMapTransform();
+      });
+      function endMapPan(event) {
+        if (mapPanPointer !== event.pointerId) return;
+        mapPanPointer = null;
+        mapCard.classList.remove('panning');
+        if (mapCard.hasPointerCapture(event.pointerId)) mapCard.releasePointerCapture(event.pointerId);
+      }
+      mapCard.addEventListener('pointerup', endMapPan);
+      mapCard.addEventListener('pointercancel', endMapPan);
+
+      const timer = document.getElementById('timer');
+      const timerValue = document.getElementById('timer-value');
+      const failure = document.getElementById('failure');
+      const sceneTransition = document.getElementById('scene-transition');
+      const sceneSlab = sceneTransition.querySelector('.scene-slab');
+      const sceneCopy = document.getElementById('scene-copy');
+      let timerId = null;
+      let deadline = 0;
+      const deadlineKey = 'spectra-code2a-deadline';
+
+      function readDeadline() {
+        try { return Number(sessionStorage.getItem(deadlineKey)); }
+        catch { return 0; }
+      }
+      function saveDeadline(value) {
+        try {
+          if (value) sessionStorage.setItem(deadlineKey, String(value));
+          else sessionStorage.removeItem(deadlineKey);
+        } catch { /* file:// で保存領域が使えない場合もタイマー自体は動作する */ }
+      }
+
+      function releaseScene(cleanupTime = 940) {
+        sceneTransition.classList.remove('cover','entry-hold');
+        sceneTransition.classList.add('release');
+        setTimeout(() => {
+          sceneTransition.classList.remove('release');
+          sceneTransition.setAttribute('aria-hidden', 'true');
+          transitionBusy = false;
+        },cleanupTime);
+      }
+
+      function playScene(label, onCovered) {
+        if (transitionBusy) {
+          setTimeout(() => playScene(label,onCovered),120);
+          return;
+        }
+        transitionBusy = true;
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const coverTime = reduced ? 40 : 880;
+        const darkHold = reduced ? 48 : 784;
+        const releaseTime = reduced ? 40 : 940;
+        sceneCopy.textContent = label;
+        sceneTransition.classList.remove('entry-hold','release','dialogue-cover','dialogue-hold','dialogue-reveal');
+        sceneTransition.classList.add('cover');
+        sceneTransition.setAttribute('aria-hidden', 'false');
+        setTimeout(() => {
+          if (onCovered) onCovered();
+        },coverTime);
+        setTimeout(() => releaseScene(releaseTime),coverTime + darkHold);
+      }
+
+      function playDialogueTransition(onBlack) {
+        if (transitionBusy) {
+          setTimeout(() => playDialogueTransition(onBlack),120);
+          return;
+        }
+        transitionBusy = true;
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const coverTime = reduced ? 40 : 850;
+        const blackHold = reduced ? 32 : 320;
+        const revealTime = reduced ? 40 : 900;
+        sceneCopy.textContent = '';
+        sceneTransition.classList.remove('cover','entry-hold','release','dialogue-hold','dialogue-reveal');
+        sceneTransition.classList.add('dialogue-cover');
+        sceneTransition.setAttribute('aria-hidden','false');
+        setTimeout(() => {
+          sceneTransition.classList.remove('dialogue-cover');
+          sceneTransition.classList.add('dialogue-hold');
+          if (onBlack) onBlack();
+        },coverTime);
+        setTimeout(() => {
+          let finished = false;
+          const finishReveal = () => {
+            if (finished) return;
+            finished = true;
+            sceneSlab.removeEventListener('transitionend', handleRevealEnd);
+            sceneTransition.classList.remove('dialogue-reveal');
+            sceneTransition.setAttribute('aria-hidden','true');
+            transitionBusy = false;
+          };
+          const handleRevealEnd = event => {
+            if (event.propertyName === 'transform') finishReveal();
+          };
+          sceneSlab.addEventListener('transitionend', handleRevealEnd);
+          sceneTransition.classList.remove('dialogue-hold');
+          sceneTransition.classList.add('dialogue-reveal');
+          setTimeout(finishReveal,revealTime + 220);
+        },coverTime + blackHold);
+      }
+
+      function playMissionBriefing(briefing, onCovered, onConfirmed) {
+        if (transitionBusy) {
+          setTimeout(() => playMissionBriefing(briefing,onCovered,onConfirmed),120);
+          return;
+        }
+        transitionBusy = true;
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const coverTime = reduced ? 40 : 850;
+        missionBriefingLabel.textContent = briefing.label;
+        missionBriefingTitle.textContent = briefing.title;
+        missionBriefingSummary.textContent = briefing.summary;
+        missionConfirmLabel.textContent = briefing.confirm;
+        missionRules.replaceChildren(...briefing.rules.map(rule => {
+          const item = document.createElement('li');
+          const marker = document.createElement('span');
+          const copy = document.createElement('span');
+          marker.className = 'mission-rule-mark';
+          marker.setAttribute('aria-hidden','true');
+          copy.textContent = rule;
+          item.append(marker,copy);
+          return item;
+        }));
+        missionConfirm.disabled = true;
+        missionConfirm.classList.remove('ready');
+        missionBriefingAction = onConfirmed;
+        sceneCopy.textContent = '';
+        sceneTransition.classList.remove('cover','entry-hold','release','dialogue-hold','dialogue-reveal','mission-hold','mission-reveal');
+        sceneTransition.classList.add('dialogue-cover');
+        sceneTransition.setAttribute('aria-hidden','false');
+        setTimeout(() => {
+          sceneTransition.classList.remove('dialogue-cover');
+          sceneTransition.classList.add('mission-hold');
+          missionBriefing.setAttribute('aria-hidden','false');
+          if (onCovered) onCovered();
+          setTimeout(() => {
+            missionConfirm.disabled = false;
+            missionConfirm.classList.add('ready');
+            missionConfirm.focus();
+          },reduced ? 20 : 2380);
+        },coverTime);
+      }
+
+      missionConfirm.addEventListener('click', () => {
+        if (!sceneTransition.classList.contains('mission-hold')) return;
+        missionConfirm.disabled = true;
+        missionConfirm.classList.remove('ready');
+        const onConfirmed = missionBriefingAction;
+        missionBriefingAction = null;
+        if (onConfirmed) onConfirmed();
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const revealTime = reduced ? 40 : 1400;
+        let finished = false;
+        const finishReveal = () => {
+          if (finished) return;
+          finished = true;
+          sceneSlab.removeEventListener('transitionend',handleRevealEnd);
+          sceneTransition.classList.remove('mission-reveal');
+          sceneTransition.setAttribute('aria-hidden','true');
+          transitionBusy = false;
+        };
+        const handleRevealEnd = event => {
+          if (event.propertyName === 'transform') finishReveal();
+        };
+        sceneSlab.addEventListener('transitionend',handleRevealEnd);
+        sceneTransition.classList.remove('mission-hold');
+        sceneTransition.classList.add('mission-reveal');
+        missionBriefing.setAttribute('aria-hidden','true');
+        setTimeout(finishReveal,revealTime + 260);
+      });
+
+      function startTimer() {
+        saveDeadline(0);
+      }
+
+      const passwordForm = document.getElementById('password-form');
+      const officePassword = document.getElementById('office-password');
+      const passwordFeedback = document.getElementById('password-feedback');
+      const officePasswordCode = 'むそう';
+      officePassword.addEventListener('input', () => {
+        officePassword.setAttribute('aria-invalid', 'false');
+        passwordFeedback.textContent = '';
+      });
+      passwordForm.addEventListener('submit', event => {
+        event.preventDefault();
+        const normalized = officePassword.value.trim().normalize('NFKC');
+        if (normalized !== officePasswordCode) {
+          officePassword.setAttribute('aria-invalid', 'true');
+          passwordFeedback.classList.remove('correct');
+          passwordFeedback.textContent = '認証失敗。パスワードを確認してください。';
+          officePassword.select();
+          return;
+        }
+        officePassword.setAttribute('aria-invalid', 'false');
+        officeCleared = true;
+        passwordFeedback.classList.add('correct');
+        passwordFeedback.textContent = '認証成功。事務室のロックを解除しました。';
+        passwordForm.querySelector('button').disabled = true;
+        officePassword.disabled = true;
+        nextButton.disabled = false;
+        playDialogueTransition(() => {
+          openNovelPart(officeDialogueLines, () => {
+            goTo(4, true, false);
+          }, false, secondMissionBriefing);
+        });
+      });
+
+      const cctvMediaPort = document.getElementById('cctv-media-port');
+      const cctvVideo = document.getElementById('cctv-video');
+      if (cctvMediaPort && cctvVideo) {
+        cctvVideo.addEventListener('loadedmetadata', () => {
+          cctvMediaPort.classList.add('has-video');
+          const label = selectedDifficulty === 'easy' ? 'EASY VIDEO' : 'HARD VIDEO';
+          document.getElementById('cctv-port-badge').textContent = `${label} / READY`;
+        });
+        cctvVideo.addEventListener('error', () => {
+          cctvMediaPort.classList.remove('has-video');
+          const label = selectedDifficulty === 'easy' ? 'EASY VIDEO' : 'HARD VIDEO';
+          document.getElementById('cctv-port-badge').textContent = `${label} / FILE NOT FOUND`;
+        });
+      }
+
+      const culpritForm = document.getElementById('culprit-form');
+      const culpritFeedback = document.getElementById('culprit-feedback');
+      const culpritNameInput = document.getElementById('culprit-name');
+      const investigationBody = document.getElementById('investigation-body');
+      const targetNames = { ogasawara:'小笠原結衣', kanzaki:'神崎美月', aizawa:'相沢洸太', chinen:'知念誠也' };
+      const targetAliases = {
+        '小笠原':'ogasawara', '小笠原結衣':'ogasawara',
+        '神崎':'kanzaki', '神崎美月':'kanzaki',
+        '相沢':'aizawa', '相沢洸太':'aizawa',
+        '知念':'chinen', '知念誠也':'chinen'
+      };
+      let selectedTargetKey = '';
+      let selectedTargetName = '';
+
+      function setCulpritFormEnabled(enabled) {
+        culpritForm.querySelectorAll('input,button').forEach(control => { control.disabled = !enabled; });
+      }
+
+      culpritForm.addEventListener('submit', event => {
+        event.preventDefault();
+        const enteredName = String(new FormData(culpritForm).get('culprit-name') || '').trim().normalize('NFC');
+        culpritNameInput.value = enteredName;
+        if (!enteredName) {
+          culpritNameInput.setAttribute('aria-invalid','true');
+          culpritFeedback.textContent = '人物の名字、または氏名を入力してください。';
+          culpritNameInput.focus();
+          return;
+        }
+        if (!/^[\p{Script=Han}々]+$/u.test(enteredName)) {
+          culpritNameInput.setAttribute('aria-invalid','true');
+          culpritFeedback.textContent = '漢字だけで入力してください。ひらがな・英数字・記号は使用できません。';
+          culpritNameInput.focus();
+          return;
+        }
+        const targetKey = targetAliases[enteredName];
+        if (!targetKey) {
+          culpritNameInput.setAttribute('aria-invalid','true');
+          culpritFeedback.textContent = '該当する人物を確認できません。名字または氏名を見直してください。';
+          culpritNameInput.focus();
+          return;
+        }
+        culpritNameInput.setAttribute('aria-invalid','false');
+        selectedTargetKey = targetKey;
+        selectedTargetName = targetNames[selectedTargetKey];
+        culpritFeedback.textContent = `${selectedTargetName}を消失対象候補として指定しました。`;
+        setCulpritFormEnabled(false);
+        playDialogueTransition(() => {
+          openNovelPart(targetDialogueLines, () => {
+            openSegmentCompleteScreen();
+          });
+        });
+      });
+
+      culpritNameInput.addEventListener('input', () => {
+        culpritNameInput.setAttribute('aria-invalid','false');
+        culpritFeedback.textContent = '';
+      });
+
+      const deviceScreen = document.getElementById('device-screen');
+      const deviceShell = document.getElementById('device-shell');
+      const deviceForm = document.getElementById('device-form');
+      const deviceActivate = document.getElementById('device-activate');
+      const deviceTargetInput = document.getElementById('device-target-name');
+      const deviceInputFeedback = document.getElementById('device-input-feedback');
+      const deviceContinue = document.getElementById('device-continue');
+      const terminalOutput = document.getElementById('terminal-output');
+      let deviceRunning = false;
+
+      const deviceCommandFactories = [
+        ({hex}) => `npm verb cli C:\\PROGRAMS\\NODE.EXE C:\\SPECTRA\\NPM\\NPM-CLI.JS --trace-id=0x${hex}`,
+        ({tick}) => `npm timing idealTree:unit-19 Completed in ${38 + (tick * 17) % 741}ms`,
+        ({hex}) => `npm install @spectra/void-core@0.${hex.slice(-2)}.${hex.slice(0,2)} --no-save --legacy-peer-deps`,
+        ({hex}) => `npx @spectra/null-compiler hydrate MAGTAPE://${hex}/PHASE-A --unsafe --silent`,
+        ({tick}) => `npm WARN deprecated human-presence@${19 + tick % 7}.2a: package scheduled for erasure`,
+        ({hex}) => `node .\\bin\\phase-latch.cjs --bus=vacuum-tube --address=0x${hex} --retry=0`,
+        ({tick}) => `webpack 5.${70 + tick % 19}.0 compiled module VOID_CHAMBER_${String(tick % 9).padStart(2,'0')} with 0 warnings`,
+        ({hex}) => `Invoke-PhaseLatch -Entropy 0x${hex} -MagTape MT-${hex.slice(0,2)} -Force $true`,
+        ({tick}) => `npm run prevanish -- --coil=${String.fromCharCode(65 + tick % 6)} --carrier=${1120 + tick * 13}kHz`,
+        ({hex}) => `Get-Process | Where-Object {$_.VoidHash -eq '0x${hex}'} | Measure-Object`,
+        ({tick}) => `npm audit fix --force --omit=dev --foreground-scripts=${tick % 2 === 0}`,
+        ({hex}) => `npm sill placeDep ROOT @spectra/entropy-shim@${hex.slice(0,1)}.${hex.slice(1,2)}.${hex.slice(2,3)} OK`,
+        ({tick}) => `tty write /dev/tape${tick % 4} --block=${String(128 + tick * 8).padStart(4,'0')} --parity=odd`,
+        ({hex}) => `npm verb shrinkwrap failed to load node_modules/.package-lock-${hex}.json out of date`,
+        ({tick}) => `Set-Item Env:NODE_OPTIONS '--max-old-space-size=${64 + (tick % 4) * 16} --void-tube-${tick % 8}'`,
+        ({hex}) => `npm run disappear:prepare && checksum --null-personality 0x${hex}`,
+        ({tick}) => `babel ./identity/source-${tick % 11}.dat --out-file NUL --plugins=@spectra/erase-memory`,
+        ({hex}) => `Resolve-DnsName consciousness-${hex}.invalid -Type NULL -DnsOnly -NoHostsFile`,
+        ({tick}) => `npm notice run-script lifecycle event=prevoid sequence=${String(tick).padStart(4,'0')}`,
+        ({hex}) => `node-gyp rebuild --target=19.2a --arch=magnetic-core --module_name=absence_${hex}`,
+        ({tick}) => `npm cache verify --workspace=unit19 --entropy-window=${(tick % 6) + 1}ms`,
+        ({hex}) => `WRITE 0x${hex} -> COREBANK-${hex.slice(-1)} / DATA=00000000 / ACK=TRUE`,
+        ({tick}) => `npm verb unfinished npm timer reify:retireShallow ${977100 + tick * 37}`,
+        ({hex}) => `Start-Job -Name NULL_${hex} -ScriptBlock { npm run void -- --silent --force }`
+      ];
+
+      function appendTerminalLine(text, type = '') {
+        const line = document.createElement('p');
+        line.className = `terminal-line ${type}`.trim();
+        line.textContent = text;
+        terminalOutput.appendChild(line);
+        while (terminalOutput.children.length > 170) terminalOutput.firstElementChild.remove();
+        terminalOutput.scrollTop = terminalOutput.scrollHeight;
+      }
+
+      function waitForDeviceLine(milliseconds) {
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        return new Promise(resolve => setTimeout(resolve,reducedMotion ? Math.min(milliseconds,90) : milliseconds));
+      }
+
+      async function runSimpleDeviceSequence() {
+        appendTerminalLine('消失装置、起動を確認。');
+        await waitForDeviceLine(900);
+        appendTerminalLine('ターゲットを認識シマシタ。');
+        await waitForDeviceLine(1000);
+        appendTerminalLine('コレヨリ、消失に入リマス。','warning');
+        await waitForDeviceLine(1200);
+        for (const number of ['3','2','1']) {
+          appendTerminalLine(number,'count');
+          if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            deviceShell.animate([{transform:'translate3d(-1px,0,0)'},{transform:'translate3d(1px,0,0)'},{transform:'translate3d(0,0,0)'}],{duration:240,easing:'ease-out'});
+          }
+          await waitForDeviceLine(850);
+        }
+        appendTerminalLine('・・・','count');
+        await waitForDeviceLine(1450);
+        appendTerminalLine('完了シマシタ。','success');
+        deviceScreen.classList.add('complete');
+        deviceRunning = false;
+        deviceContinue.disabled = false;
+        setTimeout(() => deviceContinue.focus(),500);
+      }
+
+      function openDeviceScreen(withScene = true) {
+        const showDevice = () => {
+          investigationBody.hidden = true;
+          deviceActivate.disabled = false;
+          deviceContinue.disabled = true;
+          deviceRunning = false;
+          deviceScreen.classList.remove('running','executing','transferring','finalizing','complete','leaving');
+          deviceScreen.classList.add('open','ready');
+          deviceShell.setAttribute('aria-hidden','false');
+          deviceTargetInput.value = '';
+          deviceTargetInput.setAttribute('aria-invalid','false');
+          deviceInputFeedback.textContent = '';
+          terminalOutput.textContent = '';
+          deviceScreen.setAttribute('aria-hidden', 'false');
+          setTimeout(() => deviceTargetInput.focus(),350);
+        };
+        if (withScene) playScene('VOID CHAMBER / UNIT 19-2A', showDevice);
+        else showDevice();
+      }
+
+      deviceForm.addEventListener('submit', event => {
+        event.preventDefault();
+        if (deviceRunning) return;
+        const enteredName = deviceTargetInput.value.trim().normalize('NFC');
+        if (!enteredName || !/^[\p{Script=Han}々]+$/u.test(enteredName)) {
+          deviceTargetInput.setAttribute('aria-invalid','true');
+          deviceInputFeedback.textContent = '人物の名字、または氏名を漢字で入力してください。';
+          deviceTargetInput.focus();
+          return;
+        }
+        const enteredTargetKey = targetAliases[enteredName];
+        if (!enteredTargetKey) {
+          deviceTargetInput.setAttribute('aria-invalid','true');
+          deviceInputFeedback.textContent = '対象を認識できません。入力した名前を確認してください。';
+          deviceTargetInput.focus();
+          return;
+        }
+        selectedTargetKey = enteredTargetKey;
+        selectedTargetName = targetNames[selectedTargetKey];
+        deviceTargetInput.setAttribute('aria-invalid','false');
+        deviceInputFeedback.textContent = '';
+        deviceRunning = true;
+        deviceScreen.classList.remove('executing','transferring','finalizing','complete');
+        deviceScreen.classList.add('running');
+        deviceActivate.disabled = true;
+        if (timerId) clearInterval(timerId);
+        timerId = null;
+        saveDeadline(0);
+        timer?.classList.remove('visible','danger');
+        terminalOutput.textContent = '';
+        runSimpleDeviceSequence();
+      });
+
+      deviceTargetInput.addEventListener('input', () => {
+        deviceTargetInput.setAttribute('aria-invalid','false');
+        deviceInputFeedback.textContent = '';
+      });
+
+      deviceContinue.addEventListener('click', () => {
+        if (!deviceScreen.classList.contains('complete') || deviceScreen.classList.contains('leaving')) return;
+        deviceContinue.disabled = true;
+        deviceScreen.classList.add('leaving');
+        setTimeout(startEpilogue,650);
+      });
+
+      const epilogueScreen = document.getElementById('epilogue-screen');
+      const epilogueDialogue = document.getElementById('epilogue-dialogue');
+      const epilogueCounter = document.getElementById('epilogue-counter');
+      const epilogueText = document.getElementById('epilogue-text');
+      const epilogueNext = document.getElementById('epilogue-next');
+      const epilogueResult = document.getElementById('epilogue-result');
+      const epilogueTitle = document.getElementById('epilogue-title');
+      const epilogueResultLabel = document.getElementById('epilogue-result-label');
+
+      function openSegmentCompleteScreen() {
+        if (timerId) clearInterval(timerId);
+        timerId = null;
+        saveDeadline(0);
+        epilogueActive = false;
+        epilogueDialogue.classList.add('hidden');
+        epilogueResultLabel.textContent = 'FINAL MISSION / COMMUNICATION CLOSED';
+        epilogueTitle.textContent = '通信終了';
+        epilogueTitle.classList.remove('uncertain','bad');
+        epilogueTitle.classList.add('true');
+        epilogueResult.classList.add('visible');
+        epilogueScreen.classList.add('open');
+        epilogueScreen.setAttribute('aria-hidden','false');
+        document.querySelector('.app').setAttribute('aria-hidden','true');
+      }
+      const trueEndingLines = [
+        'その後、敵国のスパイ組織への情報漏洩は発生しなくなり、スペクトラは再び秩序を取り戻した。',
+        'ほどなくして、知念が機密情報の流出と偽の監視映像を仕組んでいたことを示す、決定的な証拠が発見された。',
+        '相棒として寄り添いながら捜査を誘導すること。それこそが、彼にとって最も安全な偽装だったのだ。',
+        'あなたの決断によってスペクトラは救われ、組織は「世界征服」という目標へ再び歩み始めた。',
+        '相棒を失おうとも、正義を執行する。それが真のスパイなのだ。'
+      ];
+      const kanzakiEndingLines = [
+        'その後、スペクトラは平穏を取り戻した。',
+        '・・・かのように思えたが、ほどなくして敵国のスパイ組織へ機密情報が漏洩する事件が、再び繰り返されるようになった。',
+        '神崎美月はもう何も語らない。残されたのは、知念から渡された監視映像と、拭いきれない小さな違和感だけだった。',
+        '・・・本当に、これで良かったのだろうか。何か大切なものを、見落としてはいなかったのだろうか。'
+      ];
+      const badEndingLines = [
+        '消失処理の直後、スペクトラの機密情報が再び敵国へ送信された。',
+        '消した人物は裏切り者ではなかった。無実の仲間を失った一方で、本物の裏切り者は組織の中に残り続けた。',
+        '疑いと混乱は瞬く間にスペクトラ全体へ広がり、任務網は崩壊。多くのエージェントが消息を絶った。',
+        '誤りに気づいた時には、すべてが手遅れだった。',
+        'あなたの選択が、スペクトラに終止符を打った。'
+      ];
+      let epilogueLines = trueEndingLines;
+      let epilogueIndex = 0;
+      let epilogueActive = false;
+
+      // Ties each accusation outcome to one of the numbered ending pages
+      // (ending1.html–ending4.html). Each of the four suspects gets its
+      // own file, even though 小笠原 and 相沢 currently share the same
+      // Bad End text. Visiting that page is what actually unlocks the
+      // file in the CASE FILE ARCHIVE — same as before, via ending.js —
+      // so startEpilogue() just points the return link there instead of
+      // writing to localStorage itself.
+      const archiveFileByTarget = { ogasawara: 1, aizawa: 2, kanzaki: 3, chinen: 4 };
+
+      function renderEpilogueLine() {
+        epilogueText.textContent = epilogueLines[epilogueIndex];
+        epilogueCounter.textContent = `${String(epilogueIndex + 1).padStart(2,'0')} / ${String(epilogueLines.length).padStart(2,'0')}`;
+        epilogueNext.textContent = epilogueIndex === epilogueLines.length - 1 ? '結末を見る　›' : '次へ　›';
+        epilogueText.animate([{opacity:0,transform:'translateY(7px)'},{opacity:1,transform:'translateY(0)'}],{duration:380,easing:'ease-out'});
+      }
+
+      function startEpilogue() {
+        const fileNumber = archiveFileByTarget[selectedTargetKey];
+        const returnLink = document.querySelector('.epilogue-return');
+        if (returnLink && fileNumber) {
+          returnLink.href = `ending${fileNumber}.html`;
+          returnLink.textContent = `FILE 0${fileNumber} を確認する　→`;
+          returnLink.dataset.transitionLabel = `FILE 0${fileNumber} / OPEN`;
+        }
+        const ending = selectedTargetKey === 'chinen'
+          ? {lines:trueEndingLines,title:'TRUE END',label:'MISSION RECORD / TRUE END',className:'true'}
+          : selectedTargetKey === 'kanzaki'
+            ? {lines:kanzakiEndingLines,title:'クリア・・・？',label:'MISSION RECORD / UNRESOLVED END',className:'uncertain'}
+            : {lines:badEndingLines,title:'BAD END',label:'MISSION RECORD / MISSION FAILED',className:'bad'};
+        epilogueLines = ending.lines;
+        epilogueIndex = 0;
+        epilogueActive = true;
+        epilogueDialogue.classList.remove('hidden');
+        epilogueResult.classList.remove('visible');
+        epilogueTitle.replaceChildren('CODE:2A ');
+        const endingKind = document.createElement('span');
+        endingKind.className = 'ending-kind';
+        endingKind.textContent = ending.title;
+        epilogueTitle.appendChild(endingKind);
+        epilogueResultLabel.textContent = ending.label;
+        epilogueTitle.classList.remove('true','uncertain','bad');
+        epilogueTitle.classList.add(ending.className);
+        renderEpilogueLine();
+        epilogueScreen.classList.add('open');
+        epilogueScreen.setAttribute('aria-hidden','false');
+        setTimeout(() => {
+          deviceScreen.classList.remove('open','booting','ready','running','executing','transferring','finalizing','complete','leaving');
+          deviceShell.setAttribute('aria-hidden','true');
+          deviceScreen.setAttribute('aria-hidden','true');
+        },780);
+        setTimeout(() => epilogueNext.focus(),900);
+      }
+
+      function advanceEpilogue() {
+        if (!epilogueActive) return;
+        if (epilogueIndex < epilogueLines.length - 1) {
+          epilogueIndex += 1;
+          renderEpilogueLine();
+          return;
+        }
+        epilogueActive = false;
+        epilogueDialogue.classList.add('hidden');
+        epilogueResult.classList.add('visible');
+        setTimeout(() => document.querySelector('.epilogue-return').focus(),700);
+      }
+
+      epilogueNext.addEventListener('click',advanceEpilogue);
+
+      document.querySelectorAll('[data-gallery-art]').forEach(trigger => trigger.addEventListener('click', event => {
+        if (galleryMemoryDidDrag) {
+          event.preventDefault();
+          galleryMemoryDidDrag = false;
+          return;
+        }
+        openLightbox(trigger);
+      }));
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && mapCard.classList.contains('fullscreen')) {
+          setMapFullscreen(false);
+          mapExpand.focus();
+          return;
+        }
+        if (sceneTransition.classList.contains('mission-hold') || sceneTransition.classList.contains('mission-reveal')) return;
+        if (epilogueActive || epilogueScreen.classList.contains('open')) {
+          if (epilogueActive && !event.repeat && (event.key === 'Enter' || event.key === ' ')) {
+            event.preventDefault();
+            advanceEpilogue();
+          }
+          return;
+        }
+        if (novelActive) {
+          if (!event.repeat && (event.key === 'Enter' || event.key === ' ')) {
+            event.preventDefault();
+            advanceNovelPart();
+          }
+          return;
+        }
+        if (deviceScreen.classList.contains('open')) return;
+        if (event.key === 'Escape' && lightbox.classList.contains('open')) closeLightbox();
+        else if (event.key === 'Escape' && gallery.classList.contains('open')) setGallery(false);
+        else if (gallery.classList.contains('open') && event.key === 'ArrowLeft') setGalleryMemory(galleryMemoryCurrent - 1);
+        else if (gallery.classList.contains('open') && event.key === 'ArrowRight') setGalleryMemory(galleryMemoryCurrent + 1);
+        else if (!lightbox.classList.contains('open') && !gallery.classList.contains('open') && !['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) {
+          if (event.key === 'ArrowLeft') goTo(current - 1);
+          else if (event.key === 'ArrowRight' && current < maxUnlocked) goTo(current + 1);
+        }
+      });
+
+      function returnToAccessGate(destination) {
+        try { sessionStorage.setItem('spectra-access-entry','return'); }
+        catch { /* file:// で保存領域が使えない場合も遷移は継続する */ }
+        window.location.href = destination;
+      }
+
+      document.querySelector('.exit-link').addEventListener('click', event => {
+        event.preventDefault();
+        const destination = event.currentTarget.href;
+        playScene('MISSION CLOSED', () => returnToAccessGate(destination));
+      });
+
+      document.querySelector('.epilogue-return').addEventListener('click', event => {
+        event.preventDefault();
+        const destination = event.currentTarget.href;
+        const transitionLabel = event.currentTarget.dataset.transitionLabel || 'CASE FILE ARCHIVE';
+        playScene(transitionLabel, () => returnToAccessGate(destination));
+      });
+
+      if (easyMode) {
+        applyEasyRuby(document.body);
+        let rubyUpdateQueued = false;
+        const rubyObserver = new MutationObserver(() => {
+          if (rubyUpdateQueued) return;
+          rubyUpdateQueued = true;
+          requestAnimationFrame(() => {
+            rubyUpdateQueued = false;
+            applyEasyRuby(document.body);
+          });
+        });
+        rubyObserver.observe(document.body,{subtree:true,childList:true,characterData:true});
+      }
+
+      chapters.forEach(chapter => { if ('inert' in chapter) chapter.inert = true; });
+      goTo(3, false, false);
+      setTimeout(() => releaseScene(), 1664);
+    })();
+  </script>
+</body>
+</html>
