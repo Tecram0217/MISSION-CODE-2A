@@ -3,9 +3,45 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta http-equiv="refresh" content="0;url=mission.html">
-  <title>CODE:2A</title>
-  <script>window.location.replace('mission.html');</script>
+  <meta name="theme-color" content="#070808">
+  <meta http-equiv="refresh" content="4;url=mission.html">
+  <title>CODE:2A — ACCESS</title>
+  <style>
+    :root { --black:#070808; --white:#e8e7e1; --red:#8f1f1f; --red-bright:#ed3a31; --ease:cubic-bezier(.77,0,.18,1); }
+    * { box-sizing:border-box; }
+    html,body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--black); color:var(--white); }
+    body { font-family:Consolas,"Yu Gothic",Meiryo,monospace; }
+    .intro { position:fixed; inset:0; display:grid; place-items:center; background:radial-gradient(circle at 50% 50%,#121514,#070808 64%); }
+    .grid { position:absolute; inset:0; opacity:.3; background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px); background-size:44px 44px; }
+    .brand { position:relative; z-index:2; text-align:center; opacity:0; transform:translateY(8px); animation:brandIn .5s ease .28s forwards,brandOut .28s ease 1.45s forwards; }
+    .brand-mark { display:block; width:24px; height:24px; margin:0 auto 22px; border:1px solid var(--red-bright); transform:rotate(45deg); }
+    .brand-mark::before { content:""; display:block; width:8px; height:8px; margin:7px; background:var(--red-bright); }
+    .brand b { display:block; font-size:clamp(31px,6vw,70px); letter-spacing:.2em; }
+    .brand span:last-child { display:block; margin-top:15px; color:#747872; font-size:9px; letter-spacing:.28em; }
+    .wipe { position:absolute; z-index:4; inset:-14%; overflow:hidden; pointer-events:none; }
+    .slab,.stripe { position:absolute; top:0; bottom:0; left:-20%; transform:translateX(-125%) skewX(-8deg); }
+    .slab { width:132%; background:#090a09; animation:slabAcross 1.05s var(--ease) .88s both; }
+    .stripe { z-index:2; width:22%; background:var(--red); box-shadow:0 0 60px rgba(189,41,41,.22); animation:redAcross 1.05s var(--ease) .78s both; }
+    .stripe::after { content:""; position:absolute; inset:0 0 0 auto; width:3px; background:var(--red-bright); }
+    .status { position:absolute; z-index:5; left:50%; bottom:7vh; transform:translateX(-50%); color:var(--red-bright); font-size:9px; letter-spacing:.25em; opacity:0; animation:statusIn .25s ease 1.12s forwards; white-space:nowrap; }
+    @keyframes brandIn { to { opacity:1; transform:translateY(0); } }
+    @keyframes brandOut { to { opacity:0; transform:translateY(-5px); } }
+    @keyframes redAcross { from { transform:translateX(-125%) skewX(-8deg); } to { transform:translateX(650%) skewX(-8deg); } }
+    @keyframes slabAcross { from { transform:translateX(-125%) skewX(-8deg); } to { transform:translateX(0) skewX(-8deg); } }
+    @keyframes statusIn { to { opacity:1; } }
+    @media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms !important; animation-delay:.01ms !important; } }
+  </style>
 </head>
-<body><p><a href="mission.html">CODE:2Aを開始する</a></p></body>
+<body>
+  <main class="intro" aria-label="CODE:2A 起動中">
+    <div class="grid" aria-hidden="true"></div>
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><b>CODE:2A</b><span>SECURE MISSION ACCESS</span></div>
+    <div class="wipe" aria-hidden="true"><span class="slab"></span><span class="stripe"></span></div>
+    <div class="status">OFFICE / AUTHENTICATION</div>
+  </main>
+  <script>
+    const reduced = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    setTimeout(() => window.location.replace('mission.html'),reduced ? 80 : 1900);
+  </script>
+</body>
 </html>

@@ -1038,13 +1038,12 @@
 <body>
   <section class="difficulty-gate" id="difficulty-gate" role="dialog" aria-modal="true" aria-labelledby="difficulty-gate-title">
     <div class="difficulty-gate-card">
-      <header class="difficulty-gate-head"><span><b>●</b> VIDEO ROUTE SELECT</span><span>REQUIRED</span></header>
+      <header class="difficulty-gate-head"><span><b>●</b> DIFFICULTY SELECT</span><span>REQUIRED</span></header>
       <div class="difficulty-gate-body">
         <h1 id="difficulty-gate-title">現在遊んでいる難易度を選択</h1>
-        <p>選択した難易度に対応する監視カメラ映像へ分岐します。</p>
         <div class="difficulty-gate-options">
-          <button class="difficulty-gate-option" type="button" data-current-difficulty="easy"><b>かんたん</b><span>EASY VIDEO</span></button>
-          <button class="difficulty-gate-option" type="button" data-current-difficulty="hard"><b>難しい</b><span>HARD VIDEO</span></button>
+          <button class="difficulty-gate-option" type="button" data-current-difficulty="easy"><b>かんたん</b><span>EASY MODE</span></button>
+          <button class="difficulty-gate-option" type="button" data-current-difficulty="hard"><b>難しい</b><span>HARD MODE</span></button>
         </div>
       </div>
     </div>
@@ -1370,7 +1369,7 @@
           const videoSource = isEasy
             ? cctvMediaPort.dataset.videoEasySrc
             : cctvMediaPort.dataset.videoHardSrc;
-          const videoLabel = isEasy ? 'EASY VIDEO' : 'HARD VIDEO';
+          const videoLabel = isEasy ? 'EASY MODE' : 'HARD MODE';
           document.getElementById('cctv-port-badge').textContent = `${videoLabel} / LOADING`;
           cctvMediaPort.classList.remove('has-video');
           cctvVideo.pause();
@@ -2194,12 +2193,12 @@
       if (cctvMediaPort && cctvVideo) {
         cctvVideo.addEventListener('loadedmetadata', () => {
           cctvMediaPort.classList.add('has-video');
-          const label = selectedDifficulty === 'easy' ? 'EASY VIDEO' : 'HARD VIDEO';
+          const label = selectedDifficulty === 'easy' ? 'EASY MODE' : 'HARD MODE';
           document.getElementById('cctv-port-badge').textContent = `${label} / READY`;
         });
         cctvVideo.addEventListener('error', () => {
           cctvMediaPort.classList.remove('has-video');
-          const label = selectedDifficulty === 'easy' ? 'EASY VIDEO' : 'HARD VIDEO';
+          const label = selectedDifficulty === 'easy' ? 'EASY MODE' : 'HARD MODE';
           document.getElementById('cctv-port-badge').textContent = `${label} / FILE NOT FOUND`;
         });
       }
