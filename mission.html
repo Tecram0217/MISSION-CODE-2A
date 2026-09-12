@@ -1044,7 +1044,7 @@
         <h1 id="difficulty-gate-title">遊んでいる難易度を選択</h1><br>
         <div class="difficulty-gate-options">
           <button class="difficulty-gate-option" type="button" data-current-difficulty="easy"><b>かんたん</b><span>EASY MODE</span></button>
-          <button class="difficulty-gate-option" type="button" data-current-difficulty="hard"><b>難しい</b><span>HARD MODE</span></button>
+          <button class="difficulty-gate-option" type="button" data-current-difficulty="hard"><b>ふつう</b><span>HARD MODE</span></button>
         </div>
       </div>
     </div>
@@ -1054,7 +1054,7 @@
     <header class="topbar">
       <div class="brand"><span class="brand-mark" aria-hidden="true"></span><a href="index.html" style="color: inherit; text-decoration: none;">SPECTRA</a></div>
       <div class="classification">CODE:2A / <b>TOP SECRET</b></div>
-      <div class="top-actions"><span class="difficulty-badge" aria-label="難易度 難しい">難しい / HARD</span></div>
+      <div class="top-actions"><span class="difficulty-badge" aria-label="難易度 ふつう">ふつう / HARD</span></div>
     </header>
     <button class="gallery-button" id="gallery-button" type="button" disabled hidden aria-controls="gallery-drawer" aria-expanded="false" aria-label="未使用"></button>
 
@@ -1360,8 +1360,8 @@
           selectedDifficulty = button.dataset.currentDifficulty;
           const isEasy = selectedDifficulty === 'easy';
           document.body.classList.toggle('easy', isEasy);
-          difficultyBadge.textContent = isEasy ? 'かんたん / EASY' : '難しい / HARD';
-          difficultyBadge.setAttribute('aria-label', isEasy ? '難易度 かんたん' : '難易度 難しい');
+          difficultyBadge.textContent = isEasy ? 'かんたん / EASY' : 'ふつう / HARD';
+          difficultyBadge.setAttribute('aria-label', isEasy ? '難易度 かんたん' : '難易度 ふつう');
 
           const videoSource = isEasy
             ? cctvMediaPort.dataset.videoEasySrc
