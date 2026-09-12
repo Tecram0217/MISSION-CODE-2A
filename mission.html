@@ -274,6 +274,17 @@
     .tool-button { min-width: 42px; height: 36px; border: 1px solid var(--line); background: transparent; cursor: pointer; color: #c8cac4; }
     .zoom-readout { min-width: 66px; text-align: center; color: #858983; font: 9px Consolas, monospace; }
 
+    .timer-start-card { width:min(900px,100%); margin:8vh auto 0; border:1px solid rgba(237,58,49,.42); background:#0b0d0c; box-shadow:18px 18px 0 rgba(189,41,41,.07); }
+    .timer-start-head { display:flex; justify-content:space-between; gap:20px; padding:15px 19px; border-bottom:1px solid rgba(237,58,49,.28); color:#777b75; font:9px Consolas,monospace; letter-spacing:.15em; }
+    .timer-start-head span:first-child { color:var(--red-bright); }
+    .timer-start-body { padding:clamp(30px,6vw,62px); text-align:center; }
+    .timer-start-kicker { margin:0 0 14px; color:var(--red-bright); font:10px Consolas,monospace; letter-spacing:.18em; }
+    .timer-start-body h2 { margin:0; font-size:clamp(30px,5vw,58px); letter-spacing:-.04em; }
+    .timer-start-body p:not(.timer-start-kicker):not(.timer-start-warning) { max-width:650px; margin:20px auto 0; color:#969a94; font-size:14px; line-height:2; }
+    .timer-start-warning { margin:25px 0 30px; color:#b09a76; font:10px Consolas,monospace; letter-spacing:.1em; }
+    .timer-start-button { min-height:58px; padding:0 28px; border:1px solid var(--red-bright); background:#8f1f1f; color:#fff; cursor:pointer; font-size:12px; letter-spacing:.08em; box-shadow:0 12px 35px rgba(0,0,0,.35); transition:background .2s ease,transform .2s ease,border-color .2s ease; }
+    .timer-start-button:hover,.timer-start-button:focus-visible { background:#b32727; border-color:#ff6b61; transform:translateY(-2px); }
+
     .failure {
       position: fixed;
       z-index: 200;
@@ -488,6 +499,10 @@
     .password-row input { min-width:0; padding:0 16px; border:1px solid #3a3d39; background:#070808; color:white; outline:none; font-size:18px; letter-spacing:.2em; }
     .password-row input:focus { border-color:var(--red-bright); }
     .password-row button { border:1px solid var(--red); background:var(--red); color:white; cursor:pointer; font-size:11px; }
+
+    .staff-auth-form .password-row { grid-template-columns:minmax(0,1fr); gap:10px; }
+    .staff-auth-form .password-row input,
+    .staff-auth-form .password-row button { width:100%; box-sizing:border-box; }
     .password-feedback { min-height:36px; padding-top:11px; color:#d56e65; font-size:11px; }
     .password-feedback.correct { color:#82b96c; }
     .schedule { margin-top:18px; border-top:1px solid var(--line); }
@@ -1044,7 +1059,7 @@
         <h1 id="difficulty-gate-title">遊んでいる難易度を選択</h1><br>
         <div class="difficulty-gate-options">
           <button class="difficulty-gate-option" type="button" data-current-difficulty="easy"><b>かんたん</b><span>EASY MODE</span></button>
-          <button class="difficulty-gate-option" type="button" data-current-difficulty="hard"><b>ふつう</b><span>HARD MODE</span></button>
+          <button class="difficulty-gate-option" type="button" data-current-difficulty="hard"><b>ふつう</b><span>NORMAL MODE</span></button>
         </div>
       </div>
     </div>
@@ -1054,7 +1069,11 @@
     <header class="topbar">
       <div class="brand"><span class="brand-mark" aria-hidden="true"></span><a href="index.html" style="color: inherit; text-decoration: none;">SPECTRA</a></div>
       <div class="classification">CODE:2A / <b>TOP SECRET</b></div>
-      <div class="top-actions"><span class="difficulty-badge" aria-label="難易度 ふつう">ふつう / HARD</span></div>
+      <div class="timer" id="timer" aria-live="polite" aria-label="残り時間">
+        <span class="timer-label">TIME REMAINING</span>
+        <span class="timer-value" id="timer-value">05:00</span>
+      </div>
+      <div class="top-actions"><span class="difficulty-badge" aria-label="難易度 難しい">難しい / HARD</span></div>
     </header>
     <button class="gallery-button" id="gallery-button" type="button" disabled hidden aria-controls="gallery-drawer" aria-expanded="false" aria-label="未使用"></button>
 
@@ -1175,30 +1194,69 @@
               </div>
             </section>
 
-            <section class="chapter" data-chapter="3" aria-labelledby="chapter-title-3" aria-hidden="true">
+            <section class="chapter" data-chapter="3" id="guest-office-password-chapter" aria-labelledby="guest-office-password-title" aria-hidden="true">
               <div class="chapter-inner">
                 <header class="chapter-head">
-                  <div><div class="chapter-index">① / OFFICE</div><h1 id="chapter-title-3">事務室へ向かえ</h1></div>
-                  <div class="chapter-meta">PASSWORD REQUIRED<br>OFFICE ACCESS</div>
+                  <div><div class="chapter-index">① / GUEST OFFICE ACCESS</div><h1 id="guest-office-password-title">事務室認証</h1></div>
+                  <div class="chapter-meta">PASSWORD REQUIRED<br>GUEST OFFICE ACCESS</div>
                 </header>
-                <section class="office-gate" aria-labelledby="office-gate-title">
+                <section class="office-gate" aria-labelledby="guest-office-gate-title">
                   <header class="office-gate-head"><span>● OFFICE SECURITY</span><span>AUTHORIZATION REQUIRED</span></header>
                   <div class="office-gate-body">
-                    <h2 id="office-gate-title">事務室認証画面</h2>
-                    <form class="password-form" id="password-form">
-                      <label for="office-password">OFFICE PASSWORD／ひらがな</label>
-                      <div class="password-row"><input id="office-password" name="password" type="text" placeholder="パスワードを入力" autocomplete="off" aria-describedby="password-feedback"><button type="submit">認証</button></div>
+                    <h2 id="guest-office-gate-title">事務室認証画面</h2>
+                    <form class="password-form" id="guest-password-form">
+                      <label for="guest-password">OFFICE PASSWORD／ひらがな</label>
+                      <div class="password-row"><input id="guest-password" name="guest-password" type="text" placeholder="パスワードを入力" autocomplete="off" aria-describedby="guest-password-feedback"><button type="submit">認証</button></div>
                     </form>
-                    <div class="password-feedback" id="password-feedback" aria-live="polite"></div>
+                    <div class="password-feedback" id="guest-password-feedback" aria-live="polite"></div>
                   </div>
                 </section>
               </div>
             </section>
 
-            <section class="chapter" data-chapter="4" aria-labelledby="chapter-title-4" aria-hidden="true">
+            <section class="chapter" data-chapter="4" id="staff-password-chapter" aria-labelledby="staff-password-title" aria-hidden="true">
               <div class="chapter-inner">
                 <header class="chapter-head">
-                  <div><div class="chapter-index">② / FINAL MISSION</div><h1 id="chapter-title-4">裏切り者を特定せよ</h1></div>
+                  <div><div class="chapter-index">② / STAFF ACCESS</div><h1 id="staff-password-title">スタッフ認証</h1></div>
+                  <div class="chapter-meta">PASSWORD REQUIRED<br>STAFF ACCESS</div>
+                </header>
+                <section class="office-gate" aria-labelledby="staff-gate-title">
+                  <header class="office-gate-head"><span>● STAFF SECURITY</span><span>AUTHORIZATION REQUIRED</span></header>
+                  <div class="office-gate-body">
+                    <h2 id="staff-gate-title">スタッフ認証画面</h2>
+                    <form class="password-form staff-auth-form" id="staff-password-form">
+                      <label for="staff-password">STAFF PASSWORD</label>
+                      <div class="password-row"><input id="staff-password" name="staff-password" type="text" inputmode="numeric" placeholder="スタッフパスワードを入力" autocomplete="off" aria-describedby="staff-password-feedback"><button type="submit">認証</button></div>
+                    </form>
+                    <div class="password-feedback" id="staff-password-feedback" aria-live="polite"></div>
+                  </div>
+                </section>
+              </div>
+            </section>
+
+            <section class="chapter" data-chapter="5" id="timer-start-chapter" aria-labelledby="timer-start-title" aria-hidden="true">
+              <div class="chapter-inner">
+                <header class="chapter-head">
+                  <div><div class="chapter-index">③ / TIME LIMIT</div><h1 id="timer-start-title">最終任務を開始する</h1></div>
+                  <div class="chapter-meta">TIME LIMIT<br>05:00</div>
+                </header>
+                <section class="timer-start-card" aria-labelledby="timer-start-card-title">
+                  <header class="timer-start-head"><span>● MISSION CONTROL</span><span>FINAL COUNTDOWN</span></header>
+                  <div class="timer-start-body">
+                    <p class="timer-start-kicker">FINAL MISSION / AUTHORIZED</p>
+                    <h2 id="timer-start-card-title">制限時間は5分です。</h2>
+                    <p>監視カメラ映像を確認する前に、カウントダウンを開始してください。</p>
+                    <p class="timer-start-warning">開始するとタイマーは停止できません。</p>
+                    <button class="timer-start-button" id="timer-start-button" type="button">タイマーを開始して監視映像へ　→</button>
+                  </div>
+                </section>
+              </div>
+            </section>
+
+            <section class="chapter" data-chapter="6" aria-labelledby="chapter-title-6" aria-hidden="true">
+              <div class="chapter-inner">
+                <header class="chapter-head">
+                  <div><div class="chapter-index">④ / FINAL MISSION</div><h1 id="chapter-title-6">裏切り者を特定せよ</h1></div>
                   <div class="chapter-meta">EVIDENCE 01<br>SEPTEMBER 11</div>
                 </header>
                 <div class="investigation-body" id="investigation-body">
@@ -1221,7 +1279,7 @@
 
         <footer class="bottom-nav">
           <button class="back-button" id="back-button" type="button" disabled><b aria-hidden="true">←</b><span>ひとつ前へ戻る</span></button>
-          <div class="nav-current"><b id="nav-current">01</b> / 02</div>
+          <div class="nav-current"><b id="nav-current">01</b> / 04</div>
           <button class="next-button" id="next-button" type="button"><span id="next-label">FINAL MISSIONへ進む</span><b aria-hidden="true">→</b></button>
         </footer>
       </div>
@@ -1320,7 +1378,7 @@
       <header class="failure-head"><span>MISSION FAILED</span><span>TIME LIMIT EXCEEDED</span></header>
       <div class="failure-content">
         <h2 id="failure-title">時間切れだ。</h2>
-        <p>知念）10分<ruby>経<rt>た</rt></ruby>っちゃったようだな。お<ruby>偉<rt>えら</rt></ruby>いさんが<ruby>消失装置<rt>しょうしつそうち</rt></ruby>の<ruby>使用権限<rt>しようけんげん</rt></ruby>を10分間限定で<ruby>解放<rt>かいほう</rt></ruby>していたから、もう俺達にはどうしようもないみたいだ…</p>
+        <p>知念）5分<ruby>経<rt>た</rt></ruby>っちゃったようだな。お<ruby>偉<rt>えら</rt></ruby>いさんが<ruby>消失装置<rt>しょうしつそうち</rt></ruby>の<ruby>使用権限<rt>しようけんげん</rt></ruby>を5分間限定で<ruby>解放<rt>かいほう</rt></ruby>していたから、もう俺達にはどうしようもないみたいだ…</p>
         <p class="failure-epilogue">…その後、スペクトラでは情報<ruby>漏洩<rt>ろうえい</rt></ruby>が相次ぎ、次第に<ruby>崩壊<rt>ほうかい</rt></ruby>に向かっていった</p>
         <a class="exit-link" href="index.html"><span>出口へ向かってください</span><span aria-hidden="true">→</span></a>
       </div>
@@ -1360,8 +1418,8 @@
           selectedDifficulty = button.dataset.currentDifficulty;
           const isEasy = selectedDifficulty === 'easy';
           document.body.classList.toggle('easy', isEasy);
-          difficultyBadge.textContent = isEasy ? 'かんたん / EASY' : 'ふつう / HARD';
-          difficultyBadge.setAttribute('aria-label', isEasy ? '難易度 かんたん' : '難易度 ふつう');
+          difficultyBadge.textContent = isEasy ? 'かんたん / EASY' : '難しい / HARD';
+          difficultyBadge.setAttribute('aria-label', isEasy ? '難易度 かんたん' : '難易度 難しい');
 
           const videoSource = isEasy
             ? cctvMediaPort.dataset.videoEasySrc
@@ -1453,7 +1511,7 @@
       const missionRules = document.getElementById('mission-rules');
       const missionConfirm = document.getElementById('mission-confirm');
       const missionConfirmLabel = document.getElementById('mission-confirm-label');
-      const labels = ['', '', '', 'FINAL MISSIONへ進む', '捜査フェーズ'];
+      const labels = ['', '', '', 'スタッフ認証へ進む', '最終任務を開始する', '監視映像へ進む', ''];
       const briefingDialogueLines = [
         'やあ！知念だ。どうやら大変なことになっちまったようだが、一緒に頑張ろう！',
         'まずは絵画展示エリアへ向かい、絵画の問題を調べてくれ。',
@@ -1509,7 +1567,9 @@
       };
       let current = 3;
       let maxUnlocked = 3;
-      let officeCleared = false;
+      let staffCleared = false;
+      let guestCleared = false;
+       let timerStarted = false;
       let novelIndex = 0;
       let novelSeen = false;
       let novelActive = false;
@@ -1606,7 +1666,9 @@
 
       function goTo(index, unlock = false, animate = true) {
         if (index < 3 || index >= chapters.length) return;
-        if (index === 4 && !officeCleared) return;
+        if (index === 4 && !guestCleared) return;
+        if (index === 5 && !staffCleared) return;
+        if (index === 6 && !timerStarted) return;
         if (unlock) maxUnlocked = Math.max(maxUnlocked, index);
         if (index > maxUnlocked) return;
         if (index === 2 && current < 2 && !novelSeen) {
@@ -1631,10 +1693,17 @@
             if ('inert' in chapter) chapter.inert = !active;
             if (active) chapter.scrollTop = 0;
           });
+
+          // Keep the countdown visible on every mission screen after it starts.
+          if (timerStarted && deadline > Date.now()) {
+            timer.classList.add('visible');
+            timer.classList.remove('danger');
+            updateTimer();
+          }
+
           backButton.disabled = index === 3;
-          nextButton.disabled = index === chapters.length - 1 || (index === 3 && !officeCleared);
+          nextButton.disabled = index === chapters.length - 1 || (index === 3 && !guestCleared) || (index === 4 && !staffCleared);
           nextLabel.textContent = labels[index];
-          if (index >= 2) startTimer();
           if (instant) requestAnimationFrame(() => { track.style.transition = ''; });
         };
         if (index !== current && animate) {
@@ -2169,40 +2238,158 @@
         setTimeout(finishReveal,revealTime + 260);
       });
 
-      function startTimer() {
-        saveDeadline(0);
+      const TIMER_DURATION_MS = 5 * 60 * 1000;
+      const timerStartButton = document.getElementById('timer-start-button');
+
+      function formatTimer(ms) {
+        const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
       }
 
-      const passwordForm = document.getElementById('password-form');
-      const officePassword = document.getElementById('office-password');
-      const passwordFeedback = document.getElementById('password-feedback');
-      const officePasswordCode = 'むそう';
-      officePassword.addEventListener('input', () => {
-        officePassword.setAttribute('aria-invalid', 'false');
-        passwordFeedback.textContent = '';
-      });
-      passwordForm.addEventListener('submit', event => {
-        event.preventDefault();
-        const normalized = officePassword.value.trim().normalize('NFKC');
-        if (normalized !== officePasswordCode) {
-          officePassword.setAttribute('aria-invalid', 'true');
-          passwordFeedback.classList.remove('correct');
-          passwordFeedback.textContent = '認証失敗。パスワードを確認してください。';
-          officePassword.select();
+      function showFailure() {
+        if (timerId) clearInterval(timerId);
+        timerId = null;
+        timerValue.textContent = '00:00';
+        timer.classList.add('visible','danger');
+        failure.classList.add('active');
+        failure.setAttribute('aria-hidden','false');
+        document.querySelector('.app').setAttribute('aria-hidden','true');
+      }
+
+      function updateTimer() {
+        if (!deadline) return;
+        const remaining = deadline - Date.now();
+        if (remaining <= 0) {
+          deadline = 0;
+          saveDeadline(0);
+          showFailure();
           return;
         }
-        officePassword.setAttribute('aria-invalid', 'false');
-        officeCleared = true;
-        passwordFeedback.classList.add('correct');
-        passwordFeedback.textContent = '認証成功。事務室のロックを解除しました。';
-        passwordForm.querySelector('button').disabled = true;
-        officePassword.disabled = true;
-        nextButton.disabled = false;
-        playMissionBriefing(officeAuthSuccessBriefing, null, () => {
-          openNovelPart(getOfficeDialogueLines(), () => {
-            goTo(4, true, false);
-          }, false, secondMissionBriefing);
-        });
+        timerValue.textContent = formatTimer(remaining);
+        timer.classList.toggle('danger', remaining <= 60 * 1000);
+      }
+
+      timerValue.textContent = '05:00';
+
+      function startTimer() {
+        if (timerId) clearInterval(timerId);
+        deadline = Date.now() + TIMER_DURATION_MS;
+        saveDeadline(deadline);
+        timerStarted = true;
+        timer.classList.add('visible');
+        timer.classList.remove('danger');
+        updateTimer();
+        timerId = setInterval(updateTimer, 250);
+      }
+
+      function resumeTimer() {
+        const saved = readDeadline();
+        if (!saved || saved <= Date.now()) {
+          if (saved) saveDeadline(0);
+          return;
+        }
+        deadline = saved;
+        timerStarted = true;
+        timer.classList.add('visible');
+        updateTimer();
+        timerId = setInterval(updateTimer, 250);
+      }
+
+      timerStartButton.addEventListener('click', () => {
+        if (timerStarted) return;
+        timerStartButton.disabled = true;
+        timerStartButton.textContent = 'タイマー起動中…';
+
+        // Start the countdown first so goTo(6) is allowed to enter CCTV.
+        startTimer();
+
+        // The CCTV screen is chapter index 6 (data-chapter="6").
+        // Do not use the scene-transition overlay here: the timer screen
+        // itself is the handoff point into the live footage.
+        goTo(6, true, false);
+      });
+
+      resumeTimer();
+const guestPasswordForm = document.getElementById('guest-password-form');
+      const guestPassword = document.getElementById('guest-password');
+      const guestPasswordFeedback = document.getElementById('guest-password-feedback');
+      const staffPasswordForm = document.getElementById('staff-password-form');
+      const staffPassword = document.getElementById('staff-password');
+      const staffPasswordFeedback = document.getElementById('staff-password-feedback');
+
+      const guestPasswordCode = 'むそう';
+      const staffPasswordCode = '260911';
+
+      guestPassword.addEventListener('input', () => {
+        guestPassword.setAttribute('aria-invalid', 'false');
+        guestPasswordFeedback.textContent = '';
+        guestPasswordFeedback.classList.remove('correct');
+      });
+
+      staffPassword.addEventListener('input', () => {
+        staffPassword.setAttribute('aria-invalid', 'false');
+        staffPasswordFeedback.textContent = '';
+        staffPasswordFeedback.classList.remove('correct');
+      });
+
+      // FIRST: guest/office password (むそう)
+      guestPasswordForm.addEventListener('submit', event => {
+        event.preventDefault();
+        const normalized = guestPassword.value.trim().normalize('NFKC');
+
+        if (normalized !== guestPasswordCode) {
+          guestPassword.setAttribute('aria-invalid', 'true');
+          guestPasswordFeedback.classList.remove('correct');
+          guestPasswordFeedback.textContent = '認証失敗。パスワードを確認してください。';
+          guestPassword.select();
+          return;
+        }
+
+        guestPassword.setAttribute('aria-invalid', 'false');
+        guestPasswordFeedback.classList.add('correct');
+        guestPasswordFeedback.textContent = '認証成功。スタッフ認証へ進みます。';
+        guestPasswordForm.querySelector('button').disabled = true;
+        guestPassword.disabled = true;
+        guestCleared = true;
+
+        setTimeout(() => {
+          goTo(4, true, true);
+          staffPassword.focus();
+        }, 700);
+      });
+
+      // SECOND: staff password (260911)
+      staffPasswordForm.addEventListener('submit', event => {
+        event.preventDefault();
+        const normalized = staffPassword.value.trim().normalize('NFKC');
+
+        if (normalized !== staffPasswordCode) {
+          staffPassword.setAttribute('aria-invalid', 'true');
+          staffPasswordFeedback.classList.remove('correct');
+          staffPasswordFeedback.textContent = '認証失敗。パスワードを確認してください。';
+          staffPassword.select();
+          return;
+        }
+
+        staffPassword.setAttribute('aria-invalid', 'false');
+        staffPasswordFeedback.classList.add('correct');
+        staffPasswordFeedback.textContent = '認証成功。知念からの通信を開始します。';
+        staffPasswordForm.querySelector('button').disabled = true;
+        staffPassword.disabled = true;
+        staffCleared = true;
+
+        setTimeout(() => {
+          playDialogueTransition(() => {
+            openNovelPart(
+              getOfficeDialogueLines(),
+              () => goTo(5, true, true),
+              false,
+              secondMissionBriefing
+            );
+          });
+        }, 700);
       });
 
       const cctvMediaPort = document.getElementById('cctv-media-port');
