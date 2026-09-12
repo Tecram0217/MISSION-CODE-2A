@@ -493,6 +493,9 @@
     .office-gate-body { padding:clamp(28px,5vw,58px); }
     .office-gate-body h2 { margin:0 0 14px; font-size:clamp(27px,4vw,46px); letter-spacing:-.04em; }
     .office-gate-body > p { margin:0 0 28px; color:#8c908a; font-size:12px; line-height:1.9; }
+    .office-location-directive { display:grid; gap:7px; padding:16px 18px; border:1px solid rgba(237,58,49,.45); border-left:4px solid var(--red-bright); background:rgba(189,41,41,.1); }
+    .office-location-directive strong { color:#fff; font-size:clamp(16px,2vw,21px); line-height:1.5; }
+    .office-location-directive span { color:#b7bab4; font-size:12px; line-height:1.7; }
     .password-form label { display:block; margin-bottom:9px; color:#777b75; font:8px Consolas,monospace; letter-spacing:.14em; }
     .password-row { display:grid; grid-template-columns:1fr 100px; }
     .password-row input,.password-row button { height:52px; border-radius:0; }
@@ -1075,7 +1078,7 @@
       </div>
       <div class="top-actions"><span class="difficulty-badge" aria-label="難易度 難しい">難しい / HARD</span></div>
     </header>
-    <button class="gallery-button" id="gallery-button" type="button" disabled hidden aria-controls="gallery-drawer" aria-expanded="false" aria-label="未使用"></button>
+    <button class="gallery-button" id="gallery-button" type="button" disabled aria-controls="gallery-drawer" aria-expanded="false">絵画回想</button>
 
     <div class="workspace">
       <div class="content-stack">
@@ -1230,6 +1233,7 @@
                   <header class="office-gate-head"><span>● STAFF SECURITY</span><span>AUTHORIZATION REQUIRED</span></header>
                   <div class="office-gate-body">
                     <h2 id="staff-gate-title">スタッフ認証画面</h2>
+                    <p class="office-location-directive"><strong>先に事務室へ向かってください。</strong><span>スタッフ認証は、事務室内でのみ実行できます。</span></p>
                     <form class="password-form staff-auth-form" id="staff-password-form">
                       <label for="staff-password">STAFF PASSWORD</label>
                       <div class="password-row"><input id="staff-password" name="staff-password" type="text" inputmode="numeric" placeholder="スタッフパスワードを入力" autocomplete="off" aria-describedby="staff-password-feedback"><button type="submit">認証</button></div>
@@ -1266,6 +1270,21 @@
                   <div class="chapter-meta">EVIDENCE 01<br>SEPTEMBER 11</div>
                 </header>
                 <div class="investigation-body" id="investigation-body">
+                  <section class="investigation-hints" aria-labelledby="investigation-hint-title">
+                      <h2 id="investigation-hint-title">捜査ヒント</h2><p>必要になった任意のタイミングで、上から順に開放できます。</p>
+                      <div class="hint-stack"><button class="hint-reveal" type="button"><span>ヒントを1つ開く</span><span>＋</span></button>
+                        <div class="hint-card" hidden><b>HINT 01</b>監視カメラに映っているのは女性で、持ち物に注目すると、手提げバッグのようなものが見える。</div>
+                        <div class="hint-card" hidden><b>HINT 02</b>取り調べ情報と照合すると、この女性は神崎美月である。</div>
+                        <div class="hint-card" hidden><b>HINT 03</b>そして取り調べ資料を確認すると、神崎は【事務室に入っていない】と証言しており、映像と矛盾が見られる。</div>
+                        <div class="hint-card" hidden><b>HINT 04</b>しかし、本当に神崎が犯人なのだろうか。</div>
+                        <div class="hint-card" hidden><b>HINT 05</b>画面右側の絵に注目してみよう。この絵画は・・・</div>
+                        <div class="hint-card" hidden><b>HINT 06</b>これは絵画Dである。そういえば、道中この絵画を見た記憶はなかっただろうか。</div>
+                        <div class="hint-card" hidden><b>HINT 07</b>先ほど見たときに、絵画Dにあたる展示は【天へ】だったが、この絵は明らかに異なる。絵画回想に注目すると...</div>
+                        <div class="hint-card" hidden><b>HINT 08</b>これは【23時のペンギン】であり、9月11日より前に展示されていた絵画だ。</div>
+                        <div class="hint-card" hidden><b>HINT 09</b>しかし、この監視カメラの映像は知念によると9月11日のものである。これは先ほどの事実と矛盾する。</div>
+                        <div class="hint-card" hidden><b>HINT 10</b>知念はこの映像が9月11日のものとして嘘をつき、神崎に罪を負わせるような行動を行った。裁くべきは・・・彼だ。</div>
+                      </div>
+                    </section>
                   <div class="final-mission-flow">
                     <p class="chinen-video-intro">知念「これが９月１１日の監視カメラ映像だ。」</p>
                     <div class="cctv-frame cctv-media-port" id="cctv-media-port" data-video-easy-src="assets/cctv-video-easy.mp4" data-video-hard-src="assets/cctv-video-hard.mp4" aria-label="監視カメラ映像の差し替えポート">
@@ -1277,21 +1296,6 @@
                     <p class="next-room-directive">裏切り者の特定が完了したら、奥の【消失装置】がある場所に向かってください。</p>
                     <form id="culprit-form" hidden><input id="culprit-name" name="culprit-name"><div id="culprit-feedback"></div></form>
                   </div>
-                  <section class="investigation-hints" aria-labelledby="investigation-hint-title">
-                      <h2 id="investigation-hint-title">捜査ヒント</h2><p>必要になった任意のタイミングで、上から順に開放できます。</p>
-                      <div class="hint-stack"><button class="hint-reveal" type="button"><span>ヒントを1つ開く</span><span>＋</span></button>
-                        <div class="hint-card" hidden><b>HINT 01</b>監視カメラに映っているのは女性で、持ち物に注目すると、手提げバッグのようなものが見える。</div>
-                        <div class="hint-card" hidden><b>HINT 02</b>取り調べ情報と照合すると、この女性は神崎美月である。</div>
-                        <div class="hint-card" hidden><b>HINT 03</b>そして取り調べ資料を確認すると、神崎は【事務室に入っていない】と証言しており、映像と矛盾が見られる。</div>
-                        <div class="hint-card" hidden><b>HINT 04</b>しかし、本当に神崎が犯人なのだろうか。</div>
-                        <div class="hint-card" hidden><b>HINT 05</b>画面右側の絵に注目してみよう。この絵画は・・・</div>
-                        <div class="hint-card" hidden><b>HINT 06</b>これは絵画Dである。そういえば、道中この絵画を見た記憶はなかっただろうか。</div>
-                        <div class="hint-card" hidden><b>HINT 07</b>先ほど見たときに、絵画Dにあたる展示は【天へ】だったが、この絵は明らかに異なる。付近にあるタイムスケジュールの貼り紙に注目すると・・・</div>
-                        <div class="hint-card" hidden><b>HINT 08</b>これは【23時のペンギン】であり、9月11日より前に展示されていた絵画だ。</div>
-                        <div class="hint-card" hidden><b>HINT 09</b>しかし、この監視カメラの映像は知念によると9月11日のものである。これは先ほどの事実と矛盾する。</div>
-                        <div class="hint-card" hidden><b>HINT 10</b>知念はこの映像が9月11日のものとして嘘をつき、神崎に罪を負わせるような行動を行った。裁くべきは・・・彼だ。</div>
-                      </div>
-                    </section>
                 </div>
               </div>
             </section>
@@ -1367,16 +1371,16 @@
       <div class="gallery-memory-viewport">
         <div class="gallery-memory-track" id="gallery-memory-track">
           <article class="gallery-memory-slide active" aria-hidden="false">
-            <div class="gallery-memory-art"><button class="gallery-memory-image" data-gallery-art data-image="assets/painting-a.jpg" data-title="絵画 A — 海浜幕張駅" type="button"><img src="assets/painting-a.jpg" alt="夜の海浜幕張駅ホームを描いた絵画"><span class="zoom-hint">＋ 拡大</span></button></div>
-            <div class="gallery-memory-info"><div class="gallery-memory-code"><span>PAINTING A</span><span>ARCHIVE 01 / 04</span></div><h3>海浜幕張駅</h3><p>夜の海浜幕張駅ホームを描いた作品。駅名標には、検見川浜・海浜幕張・幕張豊砂の3駅が並んでいる。</p><div class="gallery-memory-note">回想記録 / 駅名と、その前後の駅を確認できる。</div></div>
+            <div class="gallery-memory-art"><button class="gallery-memory-image" data-gallery-art data-image="assets/painting-a.jpg" data-title="絵画 A — 何気ない日常" type="button"><img src="assets/painting-a.jpg" alt="夜の海浜幕張駅ホームを描いた絵画"><span class="zoom-hint">＋ 拡大</span></button></div>
+            <div class="gallery-memory-info"><div class="gallery-memory-code"><span>PAINTING A</span><span>ARCHIVE 01 / 04</span></div><h3>何気ない日常</h3><p>夜の海浜幕張駅ホームを描いた作品。駅名標には、検見川浜・海浜幕張・幕張豊砂の3駅が並んでいる。</p><div class="gallery-memory-note">回想記録 / 駅名と、その前後の駅を確認できる。</div></div>
           </article>
           <article class="gallery-memory-slide" aria-hidden="true">
-            <div class="gallery-memory-art"><button class="gallery-memory-image" data-gallery-art data-image="assets/painting-b.jpg" data-title="絵画 B — 繁華街の鶏" type="button"><img src="assets/painting-b.jpg" alt="夜の繁華街に立つ鶏を描いた絵画"><span class="zoom-hint">＋ 拡大</span></button></div>
-            <div class="gallery-memory-info"><div class="gallery-memory-code"><span>PAINTING B</span><span>ARCHIVE 02 / 04</span></div><h3>繁華街の鶏</h3><p>雨上がりの繁華街。その中央に一羽の鶏が立つ、不思議な構図の作品。</p><div class="gallery-memory-note">回想記録 / 絵の中にあるものを、言葉として捉えてみる。</div></div>
+            <div class="gallery-memory-art"><button class="gallery-memory-image" data-gallery-art data-image="assets/painting-b.jpg" data-title="絵画 B — 繁華街" type="button"><img src="assets/painting-b.jpg" alt="夜の繁華街に立つ鶏を描いた絵画"><span class="zoom-hint">＋ 拡大</span></button></div>
+            <div class="gallery-memory-info"><div class="gallery-memory-code"><span>PAINTING B</span><span>ARCHIVE 02 / 04</span></div><h3>繁華街</h3><p>雨上がりの繁華街。その中央に一羽の鶏が立つ、不思議な構図の作品。</p><div class="gallery-memory-note">回想記録 / 絵の中にあるものを、言葉として捉えてみる。</div></div>
           </article>
           <article class="gallery-memory-slide" aria-hidden="true">
-            <div class="gallery-memory-art"><button class="gallery-memory-image" data-gallery-art data-image="assets/painting-c.jpg" data-title="絵画 C — あいうえお表" type="button"><img src="assets/painting-c.jpg" alt="五十音表を示す授業風景の絵画"><span class="zoom-hint">＋ 拡大</span></button></div>
-            <div class="gallery-memory-info"><div class="gallery-memory-code"><span>PAINTING C</span><span>ARCHIVE 03 / 04</span></div><h3>あいうえお表</h3><p>教室の大型画面に映された五十音表。各文字の上下左右の位置関係を確認できる。</p><div class="gallery-memory-note">回想記録 / 表は右から左へ「あ・か・さ・・・」の順に並ぶ。</div></div>
+            <div class="gallery-memory-art"><button class="gallery-memory-image" data-gallery-art data-image="assets/painting-c.jpg" data-title="絵画 C — はじめてのお勉強" type="button"><img src="assets/painting-c.jpg" alt="五十音表を示す授業風景の絵画"><span class="zoom-hint">＋ 拡大</span></button></div>
+            <div class="gallery-memory-info"><div class="gallery-memory-code"><span>PAINTING C</span><span>ARCHIVE 03 / 04</span></div><h3>はじめてのお勉強</h3><p>教室の大型画面に映された五十音表。各文字の上下左右の位置関係を確認できる。</p><div class="gallery-memory-note">回想記録 / 表は右から左へ「あ・か・さ・・・」の順に並ぶ。</div></div>
           </article>
           <article class="gallery-memory-slide" aria-hidden="true">
             <div class="gallery-memory-art"><button class="gallery-memory-image" data-gallery-art data-image="assets/painting-d.jpg" data-title="絵画 D — 天へ" type="button"><img src="assets/painting-d.jpg" alt="光へ続く石段を描いた期間限定絵画"><span class="zoom-hint">＋ 拡大</span></button></div>
@@ -1571,7 +1575,8 @@
         summary: '受け取った取り調べ資料と監視カメラ映像を照らし合わせ、情報漏洩を起こした人物を特定してください。',
         rules: [
           '裏切り者は一人のみ。',
-          '裏切り者は嘘をついている。'
+          '裏切り者は嘘をついている。',
+          '制限時間は5分。確認後、直ちにカウントダウンを開始する。'
         ],
         confirm: '確認してFINAL MISSIONへ'
       };
@@ -2325,6 +2330,7 @@
 
         // Start the countdown first so goTo(6) is allowed to enter CCTV.
         startTimer();
+        unlockGallery();
 
         // The CCTV screen is chapter index 6 (data-chapter="6").
         // Do not use the scene-transition overlay here: the timer screen
@@ -2405,7 +2411,11 @@ const guestPasswordForm = document.getElementById('guest-password-form');
           playDialogueTransition(() => {
             openNovelPart(
               getOfficeDialogueLines(),
-              () => goTo(5, true, true),
+              () => {
+                if (!timerStarted) startTimer();
+                unlockGallery();
+                goTo(6, true, false);
+              },
               false,
               secondMissionBriefing
             );
